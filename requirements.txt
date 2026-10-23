@@ -1,0 +1,5 @@
+streamlit>=1.50
+supabase>=2.20
+anthropic>=0.70
+pillow>=11.0
+pillow-heif>=0.20
