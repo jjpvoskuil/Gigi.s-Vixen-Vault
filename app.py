@@ -7,9 +7,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-from lib import auth, config, ui  # noqa: E402
+from lib import auth, config, icon, ui  # noqa: E402
 
 ui.apply()
+icon.inject()
 
 missing = config.missing_settings()
 if missing:

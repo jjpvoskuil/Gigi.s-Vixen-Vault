@@ -25,6 +25,8 @@ h1, h2, h3 {letter-spacing: -0.01em;}
           padding: .1rem .55rem; margin: 0 .25rem .25rem 0; font-size: .78rem;}
 .vv-stat {background:#F7E9EC; border-radius: 14px; padding: .8rem; text-align:center;}
 .vv-stat b {display:block; font-size: 1.6rem; color:#A8325E;}
+/* hidden helper that sets the home-screen icon */
+.st-key-vv_icon_inject {display: none !important;}
 </style>
 """
 

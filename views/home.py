@@ -3,7 +3,7 @@ from urllib.parse import quote, urlsplit
 
 import streamlit as st
 
-from lib import auth, config, db, ui
+from lib import auth, config, db, icon, ui
 
 st.markdown("<div class='vv-hero'><div class='vv-title'>Gigi's Vixen Vault</div>"
             "<div class='vv-sub'>Your closet, your style.</div></div>", unsafe_allow_html=True)
@@ -49,15 +49,17 @@ st.info("Coming next: pick a style and get outfits from your closet, then see th
 
 st.write("")
 with st.expander("Phone icon", icon=":material/smartphone:"):
+    icon.status()
+    st.markdown("**iPhone (Safari):** tap **Share → Add to Home Screen** right here.\n\n"
+                "**Android (Chrome):** tap the button below, then **⋮ → Add to Home screen** "
+                "on the purple page that opens. (Also works on iPhone if the fox doesn't show.)")
     parts = urlsplit(st.context.url or "")
     app_url = f"{parts.scheme}://{parts.netloc}/" if parts.netloc else ""
-    st.markdown("Put the fox icon on this phone's home screen. Tap the button below **on the phone**, "
-                "then follow the steps on the page that opens.")
     if app_url.startswith("https://") and app_url.rstrip("/").endswith(".streamlit.app"):
         link = f"{config.launcher_url()}#app={quote(app_url, safe='')}&k={auth.token()}"
         st.link_button("Set up phone icon", link, type="primary", use_container_width=True)
     else:
-        st.caption("Available once the app is running on Streamlit Cloud.")
+        st.caption("The button appears once the app is running on Streamlit Cloud.")
 
 if st.button("Log out", type="tertiary"):
     auth.logout()

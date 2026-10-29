@@ -23,5 +23,7 @@ When an item is finished, set `status` to "Done" (or "In progress"), write a sho
 - Secrets live only in Streamlit Cloud (see `.streamlit/secrets.toml.example`).
 - `launcher/` is the source for the home-screen launcher page, published from the public repo
   `jjpvoskuil/vixen-vault-home` via GitHub Pages (Streamlit Cloud can't set its own home-screen icon).
+- Home-screen icon: `lib/icon.py` injects apple-touch-icon/manifest tags into the *outer* Streamlit Cloud page
+  (window.top, same origin), pointing at icon files on the launcher site. The launcher page is the fallback.
 - Phone-first: test layouts at ~390px wide.
 - John has no coding background — explain setup steps screen by screen.
