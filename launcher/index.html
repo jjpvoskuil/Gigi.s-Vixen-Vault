@@ -9,6 +9,9 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Vixen Vault">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -37,7 +40,15 @@
 
   <section id="setup" hidden>
     <p>All set up on this phone. Now add the icon:</p>
-    <div class="card">
+    <div class="card" id="ios-steps" hidden>
+      <ol>
+        <li>Make sure this page is open in <b>Safari</b>.</li>
+        <li>Tap the <b>Share</b> button (square with an arrow).</li>
+        <li>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+      </ol>
+      <p class="muted">Then open the Vault from the fox icon on your home screen.</p>
+    </div>
+    <div class="card" id="android-steps">
       <ol>
         <li>Tap Chrome's <b>⋮</b> menu (top right).</li>
         <li>Tap <b>Add to Home screen</b> (or <b>Install app</b>).</li>
@@ -68,20 +79,29 @@ window.addEventListener("hashchange", function () { location.reload(); });
   }
   function show(id) { document.getElementById(id).hidden = false; }
 
-  // Setup link from the app: #app=<url>&k=<token>. Saved on this phone only; never in this page's code.
-  var h = new URLSearchParams(location.hash.slice(1));
-  if (h.get("app")) {
-    var v = { app: h.get("app"), k: h.get("k") || "" };
-    if (/^https:\/\/[^\/]+\.streamlit\.app(\/|$)/.test(v.app)) {
-      save(v);
-      history.replaceState(null, "", location.pathname);
-      document.getElementById("go").href = target(v);
-      show("setup");
-      return;
+  function valid(v) { return v && v.app && /^https:\/\/[^\/]+\.streamlit\.app(\/|$)/.test(v.app); }
+  function fromParams(sp) { return sp.get("app") ? { app: sp.get("app"), k: sp.get("k") || "" } : null; }
+
+  // 1) Setup link from the app: #app=<url>&k=<token>.
+  //    Move it into the page address (?app=..&k=..) so the home-screen icon carries it —
+  //    iPhone home-screen apps don't share storage with Safari.
+  var setup = fromParams(new URLSearchParams(location.hash.slice(1)));
+  if (valid(setup)) {
+    save(setup);
+    history.replaceState(null, "", location.pathname + "?app=" + encodeURIComponent(setup.app) +
+                         "&k=" + encodeURIComponent(setup.k));
+    document.getElementById("go").href = target(setup);
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+      document.getElementById("ios-steps").hidden = false;
+      document.getElementById("android-steps").hidden = true;
     }
+    show("setup");
+    return;
   }
-  var saved = load();
-  if (saved && saved.app) { show("opening"); location.replace(target(saved)); }
+  // 2) Opened from the home-screen icon: use the address, else what this browser saved.
+  var v = fromParams(new URLSearchParams(location.search));
+  if (!valid(v)) v = load();
+  if (valid(v)) { save(v); show("opening"); location.replace(target(v)); }
   else { show("missing"); }
 })();
 </script>
