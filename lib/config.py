@@ -34,6 +34,18 @@ def supabase_settings():
     }
 
 
+def github_settings():
+    return {
+        "token": _get("github.token"),
+        "repo": _get("github.repo", "jjpvoskuil/Gigi.s-Vixen-Vault"),
+        "branch": _get("github.branch", "punch-list"),
+    }
+
+
+def launcher_url():
+    return _get("LAUNCHER_URL", "https://jjpvoskuil.github.io/vixen-vault-home/")
+
+
 def missing_settings():
     """List of human-readable settings that still need to be filled in."""
     missing = []

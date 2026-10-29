@@ -86,20 +86,69 @@ with tab_p:
             "- At minimum one **Front** photo; **Side** and **Back** help too."
         )
     st.session_state.setdefault("body_key", 0)
-    label = st.segmented_control("Which view?", ["Front", "Side", "Back", "Other"], default="Front")
-    up = st.file_uploader("Take or choose a photo", type=["jpg", "jpeg", "png", "webp", "heic", "heif"],
-                          key=f"body_{st.session_state.body_key}")
-    if up and st.button("Save photo", type="primary", use_container_width=True):
-        with st.spinner("Saving…"):
-            pics = images.prepare(up.getvalue())
-            image_path, thumb_path = db.upload_photo("body", pics["full"], pics["thumb"])
-            db.add_body_photo(label or "Front", image_path, thumb_path)
-        st.session_state.body_key += 1
-        db.signed_urls.clear()
-        st.rerun()
+    VIEWS = ["Front", "Side", "Back", "Other"]
+    ups = st.file_uploader("Take or choose photos (you can pick several)",
+                           type=["jpg", "jpeg", "png", "webp", "heic", "heif"],
+                           accept_multiple_files=True, key=f"body_{st.session_state.body_key}")
+
+    if ups:
+        st.markdown(f"**Check {'this photo' if len(ups) == 1 else f'these {len(ups)} photos'} before saving**")
+        picks = []
+        with st.container(key="grid_body_new"):
+            for row in ui.rows(list(enumerate(ups)), 3):
+                cols = st.columns(3)
+                for col, (n, f) in zip(cols, row):
+                    with col:
+                        try:
+                            st.image(images.to_jpeg(images.open_image(f.getvalue()), images.THUMB_SIZE))
+                        except Exception:
+                            st.caption("Can't preview")
+                        lab = st.selectbox("View", VIEWS, index=min(n, 3), key=f"lab_{st.session_state.body_key}_{n}",
+                                           label_visibility="collapsed")
+                        keep = st.checkbox("Keep", True, key=f"keep_{st.session_state.body_key}_{n}")
+                        picks.append((f, lab, keep))
+        chosen = [(f, lab) for f, lab, keep in picks if keep]
+        c1, c2 = st.columns([2, 1])
+        if c1.button(f"Save {len(chosen)} photo{'s' if len(chosen) != 1 else ''}", type="primary",
+                     use_container_width=True, disabled=not chosen):
+            bar = st.progress(0.0, text="Saving…")
+            for n, (f, lab) in enumerate(chosen, start=1):
+                pics = images.prepare(f.getvalue())
+                image_path, thumb_path = db.upload_photo("body", pics["full"], pics["thumb"])
+                db.add_body_photo(lab, image_path, thumb_path)
+                bar.progress(n / len(chosen), text=f"Saved {n} of {len(chosen)}")
+            st.session_state.body_key += 1
+            st.session_state.body_saved = len(chosen)
+            st.rerun()
+        if c2.button("Start over", use_container_width=True):
+            st.session_state.body_key += 1
+            st.rerun()
+
+    if st.session_state.pop("body_saved", 0):
+        st.success("Saved! They're below. Add more any time.", icon=":material/check:")
+
+    @st.dialog("Body photo", width="large")
+    def view_body(p):
+        big = db.signed_urls((p.get("image_path"),))
+        if p.get("image_path") in big:
+            st.image(big[p["image_path"]])
+        new_label = st.segmented_control("View", VIEWS, default=p.get("label") if p.get("label") in VIEWS else "Other",
+                                         key=f"relabel_{p['id']}")
+        c1, c2 = st.columns(2)
+        if c1.button("Save label", use_container_width=True, disabled=new_label == p.get("label")):
+            db.update_body_photo(p["id"], new_label)
+            st.rerun()
+        with c2.popover("Delete", use_container_width=True):
+            st.write("Delete this photo for good?")
+            if st.button("Yes, delete", type="primary", key=f"delbody_{p['id']}"):
+                db.delete_body_photo(p)
+                st.rerun()
 
     photos = db.list_body_photos()
-    if photos:
+    st.markdown(f"**Saved photos ({len(photos)})**")
+    if not photos:
+        st.caption("None yet — take a Front photo to start.")
+    else:
         urls = db.signed_urls(tuple(p.get("thumb_path") for p in photos))
         with st.container(key="grid_body"):
             for row in ui.rows(photos, 3):
@@ -108,11 +157,11 @@ with tab_p:
                     with col:
                         if p.get("thumb_path") in urls:
                             st.image(urls[p["thumb_path"]])
+                        else:
+                            st.caption("Photo unavailable")
                         ui.caption(p.get("label"))
-                        with st.popover("Remove", use_container_width=True):
-                            if st.button("Delete photo", key=f"delbody_{p['id']}", type="primary"):
-                                db.delete_body_photo(p)
-                                st.rerun()
+                        if st.button("View", key=f"viewbody_{p['id']}", use_container_width=True):
+                            view_body(p)
 
 # ------------------------------------------------------------------ styles
 with tab_s:

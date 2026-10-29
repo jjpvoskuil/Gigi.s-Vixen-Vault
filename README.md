@@ -8,7 +8,9 @@ and see them on her.
 - **Login** — one password. After logging in, use Chrome's ⋮ menu → *Add to Home screen*; the shortcut keeps her signed in.
 - **Add** — snap or pick photos (several at once). Each is resized to 2000 px, stored privately, and described by Claude (type, colors, pattern, dressiness, seasons, styles).
 - **Closet** — photo grid with search and filters; tap *Open* to edit details, mark favorites, log wears or delete.
-- **Me** — measurements and sizes, full-length body photos, and a style menu she can add to.
+- **Me** — measurements and sizes, full-length body photos (preview before saving), and a style menu she can add to.
+- **Punch List** — log bugs, changes and ideas; Claude works from this list each session.
+- **Phone icon** — custom fox-and-vault icon via a small launcher page (`launcher/`).
 
 ## Where things live
 | What | Where |

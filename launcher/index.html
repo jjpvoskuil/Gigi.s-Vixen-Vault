@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gigi's Vixen Vault</title>
+<meta name="theme-color" content="#7A1F47">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         background: radial-gradient(circle at 50% 35%, #B23A68, #7A1F47 55%, #3E0E26);
+         color: #FBEBDD; font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 24px 16px; }
+  main { max-width: 420px; width: 100%; text-align: center; }
+  img { width: 132px; height: 132px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+  h1 { font-family: Georgia, "Times New Roman", serif; font-size: 1.8rem; margin: 18px 0 6px; color: #F6DDA0; }
+  p { margin: 8px 0; }
+  .card { background: rgba(46,10,28,.45); border: 1px solid rgba(233,194,122,.35); border-radius: 16px;
+          padding: 16px; margin-top: 18px; text-align: left; }
+  ol { margin: 6px 0 0; padding-left: 1.3em; } li { margin: 6px 0; }
+  a.btn { display: inline-block; margin-top: 16px; padding: 12px 22px; border-radius: 999px;
+          background: #F6DDA0; color: #3E0E26; font-weight: 700; text-decoration: none; }
+  .muted { opacity: .75; font-size: .9rem; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <img src="icon-512.png" alt="">
+  <h1>Gigi's Vixen Vault</h1>
+
+  <section id="opening" hidden><p>Opening your vault…</p></section>
+
+  <section id="setup" hidden>
+    <p>All set up on this phone. Now add the icon:</p>
+    <div class="card">
+      <ol>
+        <li>Tap Chrome's <b>⋮</b> menu (top right).</li>
+        <li>Tap <b>Add to Home screen</b> (or <b>Install app</b>).</li>
+        <li>Tap <b>Install</b> / <b>Add</b>.</li>
+      </ol>
+      <p class="muted">Then open the Vault from the fox icon on your home screen.</p>
+    </div>
+    <a class="btn" id="go" href="#">Open the Vault now</a>
+  </section>
+
+  <section id="missing" hidden>
+    <div class="card">
+      <p>This phone hasn't been set up yet.</p>
+      <p class="muted">Open the Vault app in Chrome, log in, go to <b>Home</b> and tap
+      <b>Set up phone icon</b>.</p>
+    </div>
+  </section>
+</main>
+<script>
+window.addEventListener("hashchange", function () { location.reload(); });
+(function () {
+  var KEY = "vixenVault";
+  function load() { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; } }
+  function save(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
+  function target(v) {
+    var u = v.app.split("#")[0].split("?")[0];
+    return u + (v.k ? "?k=" + encodeURIComponent(v.k) : "");
+  }
+  function show(id) { document.getElementById(id).hidden = false; }
+
+  // Setup link from the app: #app=<url>&k=<token>. Saved on this phone only; never in this page's code.
+  var h = new URLSearchParams(location.hash.slice(1));
+  if (h.get("app")) {
+    var v = { app: h.get("app"), k: h.get("k") || "" };
+    if (/^https:\/\/[^\/]+\.streamlit\.app(\/|$)/.test(v.app)) {
+      save(v);
+      history.replaceState(null, "", location.pathname);
+      document.getElementById("go").href = target(v);
+      show("setup");
+      return;
+    }
+  }
+  var saved = load();
+  if (saved && saved.app) { show("opening"); location.replace(target(saved)); }
+  else { show("missing"); }
+})();
+</script>
+</body>
+</html>

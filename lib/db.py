@@ -126,6 +126,10 @@ def add_body_photo(label, image_path, thumb_path):
     ).execute()
 
 
+def update_body_photo(photo_id, label):
+    client().table("body_photos").update({"label": label}).eq("id", photo_id).execute()
+
+
 def delete_body_photo(photo):
     client().table("body_photos").delete().eq("id", photo["id"]).execute()
     delete_photos(photo.get("image_path"), photo.get("thumb_path"))

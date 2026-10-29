@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Gigi's Vixen Vault",
-    page_icon="💋",
+    page_icon="assets/icon-192.png",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -29,5 +29,6 @@ pages = [
     st.Page("views/add.py", title="Add", icon=":material/add_a_photo:"),
     st.Page("views/closet.py", title="Closet", icon=":material/checkroom:"),
     st.Page("views/profile.py", title="Me", icon=":material/person:"),
+    st.Page("views/punchlist.py", title="Punch List", icon=":material/checklist:"),
 ]
 st.navigation(pages, position="top").run()

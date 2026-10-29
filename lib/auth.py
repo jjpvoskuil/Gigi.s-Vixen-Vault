@@ -44,6 +44,10 @@ def login_screen():
             st.error("That's not it — try again.")
 
 
+def token():
+    return _token()
+
+
 def logout():
     st.session_state.pop("authed", None)
     st.query_params.clear()
