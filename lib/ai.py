@@ -26,7 +26,9 @@ def friendly_error(e: Exception) -> str:
     text = str(e)
     low = text.lower()
     if isinstance(e, anthropic.AuthenticationError):
-        return "The Anthropic API key wasn't accepted — check ANTHROPIC_API_KEY in Streamlit's Secrets."
+        return ("The Anthropic API key wasn't accepted. " + config.anthropic_key_problem() +
+                " Create a new key at console.anthropic.com → API Keys, paste it into Streamlit's Secrets "
+                "as ANTHROPIC_API_KEY, save, and reboot the app.")
     if "credit balance" in low or "billing" in low:
         return "The Anthropic account is out of credit — add credit at console.anthropic.com → Billing."
     if isinstance(e, anthropic.NotFoundError) or "model" in low and "not found" in low:

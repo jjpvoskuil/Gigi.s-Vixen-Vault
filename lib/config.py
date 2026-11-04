@@ -19,7 +19,25 @@ def app_password():
 
 
 def anthropic_key():
-    return _get("ANTHROPIC_API_KEY")
+    key = _get("ANTHROPIC_API_KEY")
+    return key.strip().strip('"').strip("'").strip() if isinstance(key, str) else key
+
+
+def anthropic_key_problem():
+    """A plain-English guess at what's wrong with the key's shape (never reveals the key)."""
+    key = anthropic_key() or ""
+    if not key:
+        return "No key is set."
+    if "…" in key or "..." in key:
+        return "The saved key contains '…' — that's the shortened version the console displays, not the full key."
+    if not key.startswith("sk-ant-"):
+        return "The saved key doesn't start with 'sk-ant-', so it isn't an Anthropic API key."
+    if len(key) < 90:
+        return f"The saved key is only {len(key)} characters long — full keys are about 108, so part of it is missing."
+    if any(c.isspace() for c in key):
+        return "The saved key has a space or line break in the middle."
+    return ("The key looks complete, so it has probably been deleted or replaced in the console "
+            "(or belongs to an account without access).")
 
 
 def anthropic_model():
