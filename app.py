@@ -27,6 +27,7 @@ if not auth.is_logged_in():
 
 pages = [
     st.Page("views/home.py", title="Home", icon=":material/home:", default=True),
+    st.Page("views/outfits.py", title="Outfits", icon=":material/styler:"),
     st.Page("views/add.py", title="Add", icon=":material/add_a_photo:"),
     st.Page("views/closet.py", title="Closet", icon=":material/checkroom:"),
     st.Page("views/profile.py", title="Me", icon=":material/person:"),

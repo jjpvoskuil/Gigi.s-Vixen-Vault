@@ -10,7 +10,9 @@ At the start of each session:
 git fetch origin punch-list
 git show origin/punch-list:punch_list.json
 ```
-Work items with status "Open"/"In progress", High priority first.
+Work items with status "Open"/"In progress", High priority first. Items may carry `screenshots` (list; older
+items use a single `screenshot`) and `comments` [{by, at, text}] added later by Gigi/John — read them all.
+A new comment or screenshot on a Done item reopens it.
 
 When an item is finished, set `status` to "Done" (or "In progress"), write a short plain-English
 `dev_notes` ("Fixed — photos now show a preview before saving"), bump `updated`, and commit to the

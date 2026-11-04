@@ -1,3 +1,5 @@
+import html
+
 import streamlit as st
 
 from lib import images, punchlist as pl
@@ -19,7 +21,14 @@ st.session_state.setdefault("pl_key", 0)
 k = st.session_state.pl_key
 
 # ------------------------------------------------------------------ add
-with st.expander("Add an item", expanded=True, icon=":material/add_task:"):
+items = pl.load()
+PRIO = {p: n for n, p in enumerate(pl.PRIORITIES)}
+open_items = sorted([i for i in items if i.get("status") in ("Open", "In progress")],
+                    key=lambda i: (PRIO.get(i.get("priority"), 1), i.get("created", "")))
+closed = sorted([i for i in items if i.get("status") not in ("Open", "In progress")],
+                key=lambda i: i.get("updated", ""), reverse=True)
+
+with st.expander("Add an item", expanded=not open_items, icon=":material/add_task:"):
     title = st.text_input("What should change?", key=f"pl_title_{k}",
                           placeholder="e.g. Photos don't show after I take them")
     details = st.text_area("Details (optional)", key=f"pl_details_{k}", height=90,
@@ -44,14 +53,27 @@ with st.expander("Add an item", expanded=True, icon=":material/add_task:"):
         st.rerun()
 
 # ------------------------------------------------------------------ list
-items = pl.load()
-PRIO = {p: n for n, p in enumerate(pl.PRIORITIES)}
-open_items = sorted([i for i in items if i.get("status") in ("Open", "In progress")],
-                    key=lambda i: (PRIO.get(i.get("priority"), 1), i.get("created", "")))
-closed = sorted([i for i in items if i.get("status") not in ("Open", "In progress")],
-                key=lambda i: i.get("updated", ""), reverse=True)
-
 ICON = {"Bug": "🐞", "Change": "✏️", "New idea": "💡", "Question": "❓"}
+
+
+@st.dialog("Edit item")
+def edit_item(item):
+    with st.form(f"edit_{item['id']}", border=False):
+        title = st.text_input("What should change?", item.get("title", ""))
+        details = st.text_area("Details", item.get("details", ""), height=110)
+        c1, c2 = st.columns(2)
+        kind = c1.selectbox("Type", pl.TYPES, index=pl.TYPES.index(item["type"]) if item.get("type") in pl.TYPES else 0)
+        page = c2.selectbox("Where in the app", pl.PAGES,
+                            index=pl.PAGES.index(item["page"]) if item.get("page") in pl.PAGES else len(pl.PAGES) - 1)
+        prio = st.segmented_control("Priority", pl.PRIORITIES, default=item.get("priority") or "Normal")
+        shot = st.file_uploader("Add a screenshot", type=["jpg", "jpeg", "png", "webp", "heic", "heif"])
+        save = st.form_submit_button("Save changes", type="primary", use_container_width=True)
+    if save and title.strip():
+        with st.spinner("Saving…"):
+            shot_bytes = images.to_jpeg(images.open_image(shot.getvalue()), 1400, 85) if shot else None
+            pl.edit(item["id"], {"title": title.strip(), "details": details.strip(), "type": kind,
+                                 "page": page, "priority": prio or "Normal"}, shot_bytes)
+        st.rerun()
 
 
 def show(item):
@@ -62,21 +84,40 @@ def show(item):
                    f"{' · from ' + item['added_by'] if item.get('added_by') else ''} · {item.get('created', '')[:10]}")
         if item.get("details"):
             st.write(item["details"])
-        if item.get("screenshot"):
+        for path in pl.all_screenshots(item):
             try:
-                st.image(pl.screenshot(item["screenshot"]))
+                st.image(pl.screenshot(path))
             except Exception:
                 st.caption("(screenshot couldn't be loaded)")
+        for c in item.get("comments") or []:
+            st.markdown(f"<div class='vv-note'><b>{html.escape(c.get('by') or '')}</b> "
+                        f"<span>{html.escape((c.get('at') or '')[:10])}</span><br>{html.escape(c.get('text', ''))}</div>",
+                        unsafe_allow_html=True)
         if item.get("dev_notes"):
             st.info(item["dev_notes"], icon=":material/code:")
-        c1, c2 = st.columns([2, 1])
+
+        # follow-up note + picture without opening the full editor
+        nk = f"note_{item['id']}_{st.session_state.pl_key}"
+        note = st.text_area("Add more info", key=nk, height=68, placeholder="Anything to add?",
+                            label_visibility="collapsed")
+        c1, c2 = st.columns([1, 1])
+        who = c1.segmented_control("From", ["Gigi", "John"], default="Gigi", key=f"who_{nk}",
+                                   label_visibility="collapsed")
+        if c2.button("Add note", key=f"addnote_{item['id']}", use_container_width=True, disabled=not note.strip()):
+            pl.edit(item["id"], {}, comment={"by": who or "", "text": note})
+            st.session_state.pl_key += 1
+            st.rerun()
+
+        c1, c2, c3 = st.columns([3, 2, 2])
         new_status = c1.selectbox("Status", pl.STATUSES, index=pl.STATUSES.index(item.get("status", "Open"))
                                   if item.get("status") in pl.STATUSES else 0, key=f"st_{item['id']}",
                                   label_visibility="collapsed")
         if new_status != item.get("status"):
             pl.update(item["id"], {"status": new_status})
             st.rerun()
-        with c2.popover("Delete", use_container_width=True):
+        if c2.button("Edit", key=f"edit_{item['id']}", icon=":material/edit:", use_container_width=True):
+            edit_item(item)
+        with c3.popover("Delete", use_container_width=True):
             if st.button("Delete item", type="primary", key=f"del_{item['id']}"):
                 pl.delete(item["id"])
                 st.rerun()

@@ -1,6 +1,6 @@
 import streamlit as st
 
-from lib import ai, db, ui
+from lib import ai, config, db, retag, ui
 
 st.title("My closet")
 
@@ -11,6 +11,53 @@ if not items:
     st.stop()
 
 style_names = [s["name"] for s in db.list_styles()]
+
+# ------------------------------------------------------------------ describe untagged items
+st.session_state.setdefault("retag_skip", [])
+untagged = [i for i in items if ai.is_untagged(i) and i.get("image_path")
+            and i["id"] not in st.session_state.retag_skip]
+if untagged and config.ai_enabled():
+    with st.container(border=True):
+        if st.session_state.get("retag_running"):
+            done = st.session_state.get("retag_done", 0)
+            total = done + len(untagged)
+            st.progress(done / total if total else 1.0,
+                        text=f"Describing your clothes… {done} of {total} done. Keep this screen open.")
+            if st.button("Pause", icon=":material/pause:"):
+                st.session_state.retag_running = False
+                st.rerun()
+            ok, errs = retag.run_batch(untagged, style_names)
+            st.session_state.retag_done = done + ok
+            st.session_state.retag_skip += [i for i, _ in errs]
+            if errs:
+                st.session_state.retag_error = errs[0][1]
+            if ok == 0 and errs:  # nothing worked — stop instead of looping
+                st.session_state.retag_running = False
+            st.rerun()
+        else:
+            st.markdown(f"**{len(untagged)} item{'s' if len(untagged) != 1 else ''} still need a description** "
+                        "(type, colors, styles). Outfit picks depend on these.")
+            if st.session_state.get("retag_error"):
+                st.error(st.session_state.retag_error, icon=":material/error:")
+            st.caption(f"Takes roughly {max(1, round(len(untagged) * 2.5 / 60))} min and costs about "
+                       f"${len(untagged) * 0.01:.2f} in AI usage. You can pause any time; finished items are saved.")
+            if st.button("Describe them now", type="primary", use_container_width=True,
+                         icon=":material/auto_awesome:"):
+                st.session_state.retag_running = True
+                st.session_state.retag_done = 0
+                st.session_state.retag_error = None
+                st.rerun()
+elif st.session_state.get("retag_running"):
+    st.session_state.retag_running = False
+    st.success(f"All done — described {st.session_state.get('retag_done', 0)} items.",
+               icon=":material/check:")
+elif st.session_state.retag_skip and st.session_state.get("retag_error"):
+    st.warning(f"{len(st.session_state.retag_skip)} items couldn't be described: "
+               f"{st.session_state.retag_error}", icon=":material/warning:")
+    if st.button("Try those again"):
+        st.session_state.retag_skip = []
+        st.session_state.retag_error = None
+        st.rerun()
 
 
 # ------------------------------------------------------------------ edit dialog

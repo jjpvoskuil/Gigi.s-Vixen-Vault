@@ -9,7 +9,9 @@ and see them on her.
 - **Add** — snap or pick photos (several at once). Each is resized to 2000 px, stored privately, and described by Claude (type, colors, pattern, dressiness, seasons, styles).
 - **Closet** — photo grid with search and filters; tap *Open* to edit details, mark favorites, log wears or delete.
 - **Me** — measurements and sizes, full-length body photos (preview before saving), and a style menu she can add to.
-- **Punch List** — log bugs, changes and ideas; Claude works from this list each session.
+- **Outfits** — pick a style (and occasion/weather); Claude builds outfits from her closet with reasons, a styling tip and a piece worth adding.
+- **Closet → Describe them now** — AI-describes any items saved without details (batches, pausable).
+- **Punch List** — log bugs, changes and ideas, edit them, add notes and screenshots; Claude works from this list each session.
 - **Phone icon** — custom fox-and-vault icon via a small launcher page (`launcher/`).
 
 ## Where things live
@@ -28,6 +30,6 @@ and see them on her.
 
 ## Roadmap
 1. ✅ Closet inventory, profile, styles
-2. Outfit picker — choose a style/occasion, get combinations from her closet with reasons
+2. ✅ Outfit picker — choose a style/occasion, get combinations from her closet with reasons
 3. Try-on — render chosen outfits on her body photo
 4. Gap finder — suggested new pieces and colors, visualized the same way

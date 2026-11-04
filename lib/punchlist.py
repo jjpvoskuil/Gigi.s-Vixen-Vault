@@ -21,8 +21,8 @@ API = "https://api.github.com"
 STATUSES = ["Open", "In progress", "Done", "Won't do"]
 TYPES = ["Bug", "Change", "New idea", "Question"]
 PRIORITIES = ["High", "Normal", "Low"]
-PAGES = ["Home", "Add", "Closet", "Me – Measurements", "Me – Photos", "Me – Styles",
-         "Punch List", "Phone icon / login", "Outfits (future)", "Other"]
+PAGES = ["Home", "Outfits", "Add", "Closet", "Me – Measurements", "Me – Photos", "Me – Styles",
+         "Punch List", "Phone icon / login", "Other"]
 
 
 def _gh():
@@ -119,17 +119,20 @@ def load():
         raise
 
 
+def _upload_shot(item_id, data: bytes):
+    _ensure_branch()
+    path = f"screenshots/{item_id}-{uuid.uuid4().hex[:6]}.jpg"
+    requests.put(_url(path), headers=_headers(), timeout=60, json={
+        "message": f"Screenshot for punch item {item_id}",
+        "branch": _branch(),
+        "content": base64.b64encode(data).decode(),
+    }).raise_for_status()
+    return path
+
+
 def add(fields: dict, screenshot: bytes | None = None):
     item_id = uuid.uuid4().hex[:8]
-    shot_path = None
-    if screenshot:
-        _ensure_branch()
-        shot_path = f"screenshots/{item_id}.jpg"
-        requests.put(_url(shot_path), headers=_headers(), timeout=60, json={
-            "message": f"Screenshot for punch item {item_id}",
-            "branch": _branch(),
-            "content": base64.b64encode(screenshot).decode(),
-        }).raise_for_status()
+    shots = [_upload_shot(item_id, screenshot)] if screenshot else []
     item = {
         "id": item_id,
         "created": _now(),
@@ -141,11 +144,42 @@ def add(fields: dict, screenshot: bytes | None = None):
         "details": fields.get("details", "").strip(),
         "added_by": fields.get("added_by", ""),
         "status": "Open",
-        "screenshot": shot_path,
+        "screenshots": shots,
+        "comments": [],
         "dev_notes": "",
     }
     _modify(lambda items: items.append(item), f"Punch list: add “{item['title'][:60]}”")
     return item
+
+
+def all_screenshots(item):
+    """Older items stored one 'screenshot'; newer ones keep a 'screenshots' list."""
+    shots = list(item.get("screenshots") or [])
+    if item.get("screenshot") and item["screenshot"] not in shots:
+        shots.insert(0, item["screenshot"])
+    return shots
+
+
+def edit(item_id, fields: dict, new_screenshot: bytes | None = None, comment: dict | None = None):
+    """Edits an item's text, and optionally attaches another screenshot and/or a follow-up note.
+    Reopens a finished item when someone adds information to it."""
+    shot = _upload_shot(item_id, new_screenshot) if new_screenshot else None
+
+    def fn(items):
+        for it in items:
+            if it["id"] != item_id:
+                continue
+            it.update({k: v for k, v in fields.items() if k in ("title", "details", "type", "page", "priority")})
+            if shot:
+                it["screenshots"] = all_screenshots(it) + [shot]
+                it.pop("screenshot", None)
+            if comment and comment.get("text", "").strip():
+                it.setdefault("comments", []).append(
+                    {"by": comment.get("by", ""), "at": _now(), "text": comment["text"].strip()})
+            if (shot or comment) and it.get("status") in ("Done", "Won't do"):
+                it["status"] = "Open"
+            it["updated"] = _now()
+    _modify(fn, f"Punch list: edit {item_id}")
 
 
 def update(item_id, fields: dict):

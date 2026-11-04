@@ -25,6 +25,9 @@ h1, h2, h3 {letter-spacing: -0.01em;}
           padding: .1rem .55rem; margin: 0 .25rem .25rem 0; font-size: .78rem;}
 .vv-stat {background:#F7E9EC; border-radius: 14px; padding: .8rem; text-align:center;}
 .vv-stat b {display:block; font-size: 1.6rem; color:#A8325E;}
+.vv-note {background:#FFFFFF; border-left: 3px solid #A8325E; border-radius: 6px; padding: .4rem .6rem;
+           margin: .3rem 0; font-size: .9rem;}
+.vv-note span {color:#8a7480; font-size: .78rem;}
 /* hidden helper that sets the home-screen icon */
 .st-key-vv_icon_inject {display: none !important;}
 </style>

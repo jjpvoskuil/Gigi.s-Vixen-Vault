@@ -5,7 +5,6 @@ same address. Phones read the home-screen icon/name from that outer page, so we 
 there (window.top). The icon files are served by the public launcher site.
 """
 import streamlit as st
-import streamlit.components.v1 as components
 
 from lib import config
 
@@ -56,6 +55,15 @@ _CHECK = """
 """
 
 
+def _frame(html, height):
+    """Same-origin iframe running our script (st.iframe replaces the older components.html)."""
+    if hasattr(st, "iframe"):
+        st.iframe(html, height=height)
+    else:  # older Streamlit
+        import streamlit.components.v1 as components
+        components.html(html, height=height)
+
+
 def _base():
     base = config.launcher_url()
     return base if base.endswith("/") else base + "/"
@@ -64,8 +72,8 @@ def _base():
 def inject():
     """Call once per run, near the top of app.py."""
     with st.container(key="vv_icon_inject"):
-        components.html(_INJECT % {"base": _base()}, height=0)
+        _frame(_INJECT % {"base": _base()}, 1)
 
 
 def status():
-    components.html(_CHECK, height=48)
+    _frame(_CHECK, 48)

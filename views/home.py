@@ -3,7 +3,7 @@ from urllib.parse import quote, urlsplit
 
 import streamlit as st
 
-from lib import auth, config, db, icon, ui
+from lib import ai, auth, config, db, icon, ui
 
 st.markdown("<div class='vv-hero'><div class='vv-title'>Gigi's Vixen Vault</div>"
             "<div class='vv-sub'>Your closet, your style.</div></div>", unsafe_allow_html=True)
@@ -12,15 +12,18 @@ items = db.list_items()
 profile = db.get_profile()
 body = db.list_body_photos()
 
-c1, c2, c3 = st.columns(3)
-with c1:
-    ui.stat("pieces", len(items))
-with c2:
-    ui.stat("favorites", sum(1 for i in items if i.get("favorite")))
-with c3:
-    ui.stat("my styles", len(profile.get("my_styles") or []))
+untagged_n = sum(1 for i in items if ai.is_untagged(i))
+with st.container(key="grid_stats"):
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        ui.stat("pieces", len(items))
+    with c2:
+        ui.stat("favorites", sum(1 for i in items if i.get("favorite")))
+    with c3:
+        ui.stat("my styles", len(profile.get("my_styles") or []))
 
 st.write("")
+st.page_link("views/outfits.py", label="Get outfit ideas", icon=":material/styler:")
 st.page_link("views/add.py", label="Add clothes", icon=":material/add_a_photo:")
 st.page_link("views/closet.py", label="Browse my closet", icon=":material/checkroom:")
 st.page_link("views/profile.py", label="My measurements, photos & styles", icon=":material/person:")
@@ -44,8 +47,11 @@ if todo:
     for t in todo:
         st.markdown(f"- {t}")
 
-st.info("Coming next: pick a style and get outfits from your closet, then see them on you.",
-        icon=":material/auto_awesome:")
+if untagged_n:
+    st.warning(f"{untagged_n} closet items still need a description before they can be used in outfits.",
+               icon=":material/auto_awesome:")
+    st.page_link("views/closet.py", label="Describe them now (Closet)", icon=":material/checkroom:")
+st.caption("Coming next: see outfits on you (try-on).")
 
 st.write("")
 with st.expander("Phone icon", icon=":material/smartphone:"):
