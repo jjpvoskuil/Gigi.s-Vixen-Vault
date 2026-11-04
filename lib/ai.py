@@ -27,10 +27,10 @@ def friendly_error(e: Exception) -> str:
     low = text.lower()
     if isinstance(e, anthropic.AuthenticationError):
         return ("The Anthropic API key wasn't accepted. " + config.anthropic_key_problem() +
-                " Create a new key at console.anthropic.com → API Keys, paste it into Streamlit's Secrets "
+                " Create a new key at platform.claude.com → Settings → API Keys, paste it into Streamlit's Secrets "
                 "as ANTHROPIC_API_KEY, save, and reboot the app.")
     if "credit balance" in low or "billing" in low:
-        return "The Anthropic account is out of credit — add credit at console.anthropic.com → Billing."
+        return "The Anthropic account is out of credit — add credit at platform.claude.com/settings/billing."
     if isinstance(e, anthropic.NotFoundError) or "model" in low and "not found" in low:
         return f"The AI model name isn't recognized ({config.anthropic_model()}) — check ANTHROPIC_MODEL in Secrets."
     if isinstance(e, anthropic.RateLimitError):
@@ -38,6 +38,47 @@ def friendly_error(e: Exception) -> str:
     if isinstance(e, anthropic.APIConnectionError):
         return "Couldn't reach the AI service — check the connection and try again."
     return text[:300]
+
+
+def _strictify(schema):
+    """Strict tools need additionalProperties:false and every property listed as required."""
+    if isinstance(schema, dict):
+        if schema.get("type") == "object" and "properties" in schema:
+            schema["additionalProperties"] = False
+            schema["required"] = list(schema["properties"].keys())
+        for v in list(schema.values()):
+            _strictify(v)
+    elif isinstance(schema, list):
+        for v in schema:
+            _strictify(v)
+    return schema
+
+
+def _call_tool(tool, content, max_tokens, client=None):
+    """Asks the model to answer by calling `tool`; returns the tool input as a dict.
+    Newer models reject forced tool_choice, so we use auto + strict and retry once if needed."""
+    import copy
+    t = copy.deepcopy(tool)
+    _strictify(t["input_schema"])
+    t["strict"] = True
+    instruction = f"\n\nAnswer only by calling the {t['name']} tool."
+    if isinstance(content, str):
+        content = content + instruction
+    else:
+        content = list(content) + [{"type": "text", "text": instruction.strip()}]
+    c = client or _client()
+    for _ in range(2):
+        msg = c.messages.create(
+            model=config.anthropic_model(),
+            max_tokens=max_tokens,
+            tools=[t],
+            tool_choice={"type": "auto"},
+            messages=[{"role": "user", "content": content}],
+        )
+        for block in msg.content:
+            if block.type == "tool_use" and block.name == t["name"]:
+                return dict(block.input)
+    raise RuntimeError("The AI answered without filling in the details — please try again.")
 
 
 def is_untagged(item: dict) -> bool:
@@ -78,31 +119,19 @@ def _tag_tool(style_names):
 def tag_item(jpeg_bytes: bytes, style_names: list, client=None) -> dict:
     """Looks at a clothing photo and returns catalog fields. Raises on API errors."""
     tool = _tag_tool(style_names)
-    msg = (client or _client()).messages.create(
-        model=config.anthropic_model(),
-        max_tokens=1024,
-        tools=[tool],
-        tool_choice={"type": "tool", "name": "record_item"},
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
-                                             "data": base64.b64encode(jpeg_bytes).decode()}},
-                {"type": "text", "text": (
-                    "This is a photo of one item from a woman's closet, taken on her phone. "
-                    "Catalog the main garment or accessory in the photo. Ignore the background, "
-                    "hangers and anything else in frame. Use everyday color names a shopper would use."
-                )},
-            ],
-        }],
-    )
-    for block in msg.content:
-        if block.type == "tool_use":
-            data = dict(block.input)
-            if data.get("category") not in CATEGORIES:
-                data["category"] = "other"
-            return data
-    raise RuntimeError("The AI didn't return item details.")
+    data = _call_tool(tool, [
+        {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
+                                     "data": base64.b64encode(jpeg_bytes).decode()}},
+        {"type": "text", "text": (
+            "This is a photo of one item from a woman's closet, taken on her phone. "
+            "Catalog the main garment or accessory in the photo. Ignore the background, "
+            "hangers and anything else in frame. Use everyday color names a shopper would use. "
+            "Use an empty string for anything you can't tell (e.g. brand)."
+        )},
+    ], 1024, client)
+    if data.get("category") not in CATEGORIES:
+        data["category"] = "other"
+    return data
 
 
 # ---------------------------------------------------------------- outfits
@@ -194,16 +223,7 @@ Rules:
 - Fit the requested style, occasion and season. Respect her color likes/dislikes and what she wants to show off or play down; use her measurements to favor flattering proportions.
 - Make the outfits genuinely different from each other. Favor favorites and pieces she hasn't worn much.
 - If her closet can't make {count} good outfits for this request, return fewer rather than forcing bad ones, and say what's missing in closet_gaps."""
-    msg = _client().messages.create(
-        model=config.anthropic_model(),
-        max_tokens=3000,
-        tools=[OUTFIT_TOOL],
-        tool_choice={"type": "tool", "name": "propose_outfits"},
-        messages=[{"role": "user", "content": prompt}],
-    )
-    data = next((dict(b.input) for b in msg.content if b.type == "tool_use"), None)
-    if not data:
-        raise RuntimeError("The AI didn't return any outfits.")
+    data = _call_tool(OUTFIT_TOOL, prompt, 3000)
     out = []
     for o in data.get("outfits") or []:
         picked, seen = [], set()
