@@ -104,6 +104,17 @@ def edit_item(item):
         ))
         st.rerun()
 
+    if config.ai_enabled() and item.get("image_path"):
+        if st.button("Describe with AI", icon=":material/auto_awesome:", use_container_width=True,
+                     help="Replaces the name, type, colors and styles with a fresh AI description. "
+                          "Your notes, brand and size are kept."):
+            with st.spinner("Looking at the photo…"):
+                ok, errs = retag.run_batch([item], style_names)
+            if errs:
+                st.error(errs[0][1])
+            else:
+                st.rerun()
+
     st.divider()
     c1, c2 = st.columns(2)
     if c1.button(f"Wore it today ({item.get('times_worn') or 0})", use_container_width=True):

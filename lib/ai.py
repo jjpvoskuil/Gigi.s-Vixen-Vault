@@ -81,9 +81,14 @@ def _call_tool(tool, content, max_tokens, client=None):
     raise RuntimeError("The AI answered without filling in the details — please try again.")
 
 
+PLACEHOLDER_NAMES = {"", "new item"}
+
+
 def is_untagged(item: dict) -> bool:
-    """Items saved without an AI description (tagging failed or was off)."""
-    return not (item.get("description") or "").strip()
+    """Items saved without a proper description: blank description, or still named 'New item'
+    (what the app saves when the AI step fails)."""
+    return (not (item.get("description") or "").strip()
+            or (item.get("name") or "").strip().lower() in PLACEHOLDER_NAMES)
 
 
 def _tag_tool(style_names):

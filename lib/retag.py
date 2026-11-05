@@ -1,4 +1,4 @@
-"""Describe closet items that were saved without an AI description."""
+"""Describe closet items with AI: ones saved without a description, or a single item on request."""
 from concurrent.futures import ThreadPoolExecutor
 
 from lib import ai, db, images
@@ -19,9 +19,16 @@ def run_batch(items, style_names):
             fields = ai.tag_item(jpeg, style_names, client=client)
             row = {k: v for k, v in fields.items() if k in db.ITEM_FIELDS}
             # keep anything she already filled in by hand
-            for k in ("name", "notes", "brand", "size"):
-                if (item.get(k) or "").strip() and item.get(k) != "New item":
+            if (item.get("name") or "").strip().lower() not in ai.PLACEHOLDER_NAMES:
+                row.pop("name", None)
+            for k in ("brand", "size"):
+                if (item.get(k) or "").strip():
                     row.pop(k, None)
+            # her own description isn't lost: it moves into her notes
+            own = (item.get("description") or "").strip()
+            notes = (item.get("notes") or "").strip()
+            if own and own.lower() not in ai.PLACEHOLDER_NAMES and own not in notes:
+                row["notes"] = f"{notes}\n{own}".strip() if notes else own
             row["updated_at"] = db._now()
             sb.table("items").update(row).eq("id", item["id"]).execute()
             return item["id"], None
