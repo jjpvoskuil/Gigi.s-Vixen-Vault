@@ -3,7 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // ---------------------------------------------------------------- src/lib/punch.js
-// Punch list rules — same JSON shape as the Streamlit app (lib/punchlist.py), stored as punch_list.json on the
+// Punch list rules — same JSON shape as the retired Streamlit app, stored as punch_list.json on the
 // repo's "punch-list" branch so Claude (the developer) reads the same list. Plain JS, no imports: the
 // vault-punch Edge Function inlines this file.
 

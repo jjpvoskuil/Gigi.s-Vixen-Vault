@@ -1,35 +1,39 @@
 # Gigi's Vixen Vault
 
-A phone-first Streamlit app for Gigi's closet: photograph clothes, let AI describe and tag them,
-keep her measurements, body photos and favorite styles — and (coming next) get outfit picks
-and see them on her.
+A private, phone-first web app for Gigi's closet: photograph clothes, let AI describe them, keep her
+measurements, body photos and favorite styles, and get outfit picks built from what she owns.
 
-## What's built (stage 1)
-- **Login** — one password. After logging in, use Chrome's ⋮ menu → *Add to Home screen*; the shortcut keeps her signed in.
-- **Add** — snap or pick photos (several at once). Each is resized to 2000 px, stored privately, and described by Claude (type, colors, pattern, dressiness, seasons, styles).
-- **Closet** — photo grid with search and filters; tap *Open* to edit details, mark favorites, log wears or delete.
-- **Me** — measurements and sizes, full-length body photos (preview before saving), and a style menu she can add to.
-- **Outfits** — pick a style (and occasion/weather); Claude builds outfits from her closet with reasons, a styling tip and a piece worth adding.
-- **Closet → Describe them now** — AI-describes any items saved without details (batches, pausable).
-- **Punch List** — log bugs, changes and ideas, edit them, add notes and screenshots; Claude works from this list each session.
-- **Phone icon** — custom fox-and-vault icon via a small launcher page (`launcher/`).
+**Live:** https://vixen-vault.netlify.app (Google sign-in; only emails on the `app_users` list get in).
 
-## Where things live
-| What | Where |
+## Screens
+- **Closet** — photo grid by category, search, filters and sorting; tap a piece to edit it, favorite it, log a wear,
+  have the AI (re-)describe it, or delete it. *Select* deletes several at once.
+- **Unlock** — pick a style (+ occasion / weather); the AI builds outfits from her described pieces, with why it works,
+  a styling tip, one piece worth adding, and pieces that would unlock more looks. *I'm wearing this today* logs wears.
+- **Add** — take a photo or pick several; each is shrunk on the phone (2000 px + 480 px thumbnail), stored privately,
+  and described by the AI. Pieces still waiting for a description can be described in one go.
+- **Me** — measurements and sizes, fit and color notes, body photos (Front / Side / Back), and her styles (add her own).
+- **More → Punch list** — bugs, changes and ideas, with notes and screenshots. Claude works through it each session.
+
+## How it's built
+| Piece | Where |
 |---|---|
-| Code | this GitHub repo |
-| Photos, closet records, profile | Supabase (private bucket `vault` + tables) |
-| Passwords and API keys | Streamlit Cloud → app → Settings → Secrets (never in GitHub) |
+| Web app (React + Vite) | `web/` → Netlify builds and deploys every push to `main` (`netlify.toml`) |
+| Data, photos, sign-in | Supabase: tables + row-level security (`web/supabase/schema.sql`), private `vault` bucket, Google sign-in |
+| AI (photo descriptions, outfits) | Supabase Edge Function `vault-ai` — the Anthropic key lives only there |
+| Punch list | Edge Function `vault-punch` → `punch_list.json` on the repo's `punch-list` branch (GitHub key lives only there) |
+| Backups | Private repo `jjpvoskuil/vixen-vault-data` — GitHub Actions copy tables + new photos Mon & Thu |
 
-## One-time setup
-1. **Supabase** — create a free project at supabase.com. Open **SQL Editor → New query**, paste all of `supabase/schema.sql`, click **Run**.
-   Then **Project Settings → API Keys**: copy the **Project URL** and the **secret** key (or the legacy `service_role` key).
-2. **Anthropic** — create an API key at console.anthropic.com.
-3. **Streamlit Cloud** — *Create app* → this repo, branch `main`, main file `app.py`.
-   Under **Advanced settings → Secrets**, paste the contents of `.streamlit/secrets.toml.example` with real values filled in.
+Secrets are never in this repo. Supabase → Edge Functions → Secrets holds `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`
+and `GITHUB_TOKEN`. The publishable Supabase key in `web/src/config.js` is public by design.
 
-## Roadmap
-1. ✅ Closet inventory, profile, styles
-2. ✅ Outfit picker — choose a style/occasion, get combinations from her closet with reasons
-3. Try-on — render chosen outfits on her body photo
-4. Gap finder — suggested new pieces and colors, visualized the same way
+## Developer commands (in `web/`)
+```bash
+npm ci
+npm run dev          # local app; add ?demo to the URL for made-up data with no sign-in
+npm test             # rules + Edge Function tests (also run by Netlify before every deploy)
+npm run build
+node supabase/build_functions.mjs   # rebuild the pasteable functions/*/index.ts after editing a handler
+```
+`web/reference/*.py` are the original Python rules; `web/supabase/make_fixtures.py` turns them into the fixtures the
+JavaScript ports are tested against.

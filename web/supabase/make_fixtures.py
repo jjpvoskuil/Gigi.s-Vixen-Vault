@@ -5,9 +5,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-from lib import closetlogic  # noqa: E402
-from lib.ai import is_untagged  # noqa: E402 (needs streamlit + anthropic installed)
+sys.path.insert(0, str(ROOT / "web" / "reference"))
+import closetlogic  # noqa: E402
+from ailogic import is_untagged  # noqa: E402
 
 ITEMS = [
     {"id": "a", "name": "Navy striped tee", "category": "top", "subcategory": "t-shirt", "primary_color": "Navy",
@@ -47,8 +47,8 @@ dest = ROOT / "web" / "src" / "lib" / "closet.fixtures.json"
 dest.write_text(json.dumps(out, indent=1) + "\n")
 print(f"wrote {dest} ({len(CASES)} cases)")
 
-# ---------------------------------------------------------------- AI rules (lib/ailogic.py → ai.fixtures.json)
-from lib import ailogic  # noqa: E402
+# ---------------------------------------------------------------- AI rules (reference/ailogic.py → ai.fixtures.json)
+import ailogic  # noqa: E402
 
 PROFILES = [
     {},

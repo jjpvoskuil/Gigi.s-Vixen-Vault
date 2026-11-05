@@ -1,4 +1,4 @@
-// The AI rules — ported from the Python app (lib/ailogic.py). Used by the Supabase Edge Function (photo
+// The AI rules — ported from the Python app (web/reference/ailogic.py). Used by the Supabase Edge Function (photo
 // descriptions, outfits) and the app. Parity-tested against fixtures generated from the Python code
 // (web/supabase/make_fixtures.py → ai.fixtures.json). Change both sides together.
 // Plain JavaScript with no imports, so the Edge Function bundle can inline it.

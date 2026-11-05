@@ -5,7 +5,7 @@
 --   * Only emails in app_users are approved. Anyone else can finish Google sign-in but sees and saves nothing.
 --   * Everyone approved (Gigi and John) sees and edits everything: closet, profile, body photos, styles, photos.
 --   * Admins (role 'admin') manage who is on app_users.
---   * The old Streamlit app uses the secret key, which bypasses these rules, so it keeps working during the move.
+--   * Backups (vixen-vault-data repo) use the secret key, which bypasses these rules.
 
 -- ---------------------------------------------------------------- tables (same shape the Streamlit app created)
 create extension if not exists pgcrypto;

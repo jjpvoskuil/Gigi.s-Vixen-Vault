@@ -1,4 +1,4 @@
-// Closet rules — ported from the Python app (lib/closetlogic.py, lib/ai.py). Parity-tested against
+// Closet rules — ported from the Python app (web/reference/closetlogic.py, ailogic.py). Parity-tested against
 // fixtures generated from the Python code (supabase/make_fixtures.py → closet.fixtures.json).
 
 export const CATEGORIES = ["top", "bottom", "dress", "jumpsuit", "outerwear", "sweater", "activewear",
