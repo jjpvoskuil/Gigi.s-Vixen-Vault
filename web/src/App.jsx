@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase, configured } from "./supabase.js";
 import ClosetScreen from "./ClosetScreen.jsx";
+import AddScreen from "./AddScreen.jsx";
 import { Dial, Soon, TabBar } from "./Shell.jsx";
 import Icon from "./Icon.jsx";
 import { demoSeed } from "./demo.js";
@@ -72,10 +73,12 @@ export default function App() {
       {tab === "closet" && (
         <ClosetScreen db={db} items={data.items} styles={data.styles} onUnlock={() => go("unlock")}
           onSave={(id, fields, ok) => save((d) => d.saveItem(id, fields), ok)}
-          onDelete={(item) => save((d) => d.deleteItem(item), "Deleted")} />
+          onDelete={(item) => save((d) => d.deleteItem(item), "Deleted")}
+          onDescribe={async (id) => { try { const it = await db.describeItem(id); await load(); setToast("Described"); return it; } catch (e) { setToast(e.message); return null; } }}
+          onDescribeAll={() => go("add")} />
       )}
       {tab === "unlock" && <Soon title="Unlock a look" what="Pick a mood and get outfits built from your closet." />}
-      {tab === "add" && <Soon title="Add to the vault" what="Snap or pick photos; the AI describes each piece." />}
+      {tab === "add" && <AddScreen db={db} items={data.items} reload={load} onCloset={() => go("closet")} />}
       {tab === "me" && <Soon title="Me" what="Measurements, body photos and your styles." />}
       {tab === "more" && (
         <div className="scroll">

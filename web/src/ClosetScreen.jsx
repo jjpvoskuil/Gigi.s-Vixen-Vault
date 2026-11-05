@@ -5,7 +5,7 @@ import { CATEGORIES, CATEGORY_LABEL, FORMALITY, SEASONS, SORTS, categoryCounts, 
 
 const QUICK = [["fav", "Favorites"], ["leather", "Leather"], ["lace", "Lace"]];
 
-export default function ClosetScreen({ db, items, styles, onSave, onDelete, onUnlock }) {
+export default function ClosetScreen({ db, items, styles, onSave, onDelete, onUnlock, onDescribe, onDescribeAll }) {
   const [tab, setTab] = useState("all");
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
@@ -61,7 +61,9 @@ export default function ClosetScreen({ db, items, styles, onSave, onDelete, onUn
       </button>
 
       {untagged > 0 && (
-        <div className="banner"><Icon name="sparkle" size={18} />{untagged} piece{untagged === 1 ? " needs" : "s need"} a description before outfits can use {untagged === 1 ? "it" : "them"}.</div>
+        <button className="banner" onClick={onDescribeAll}><Icon name="sparkle" size={18} />
+          <span style={{ flex: 1, textAlign: "left" }}>{untagged} piece{untagged === 1 ? " needs" : "s need"} a description before outfits can use {untagged === 1 ? "it" : "them"}.</span>
+          <b>Describe</b></button>
       )}
 
       <div className="tabs" role="tablist" aria-label="Show">
@@ -99,7 +101,7 @@ export default function ClosetScreen({ db, items, styles, onSave, onDelete, onUn
           </div>}
 
       {showFilters && <FilterSheet styles={styles} value={filters} onChange={setFilters} onClose={() => setShowFilters(false)} />}
-      {open && <ItemSheet db={db} item={open} styles={styles} onClose={() => setOpenId(null)} onSave={onSave}
+      {open && <ItemSheet db={db} item={open} styles={styles} onClose={() => setOpenId(null)} onSave={onSave} onDescribe={onDescribe}
         onDelete={async (it) => { if (await onDelete(it)) setOpenId(null); }} />}
     </div>
   );
@@ -131,7 +133,7 @@ function FilterSheet({ styles, value, onChange, onClose }) {
 const EDIT_KEYS = ["name", "category", "subcategory", "primary_color", "colors", "pattern", "material", "fit", "formality",
   "seasons", "styles", "brand", "size", "description", "notes"];
 
-function ItemSheet({ db, item, styles, onClose, onSave, onDelete }) {
+function ItemSheet({ db, item, styles, onClose, onSave, onDelete, onDescribe }) {
   const [f, setF] = useState(() => ({ ...item, colors: (item.colors || []).join(", ") }));
   const [hero, setHero] = useState("");
   const [confirm, setConfirm] = useState(false);
@@ -195,7 +197,10 @@ function ItemSheet({ db, item, styles, onClose, onSave, onDelete }) {
         </button>
       </div>
       <div className="actions">
-        <button className="btn" disabled title="Arrives with the Add screen"><Icon name="sparkle" size={18} />Describe with AI · soon</button>
+        <button className="btn" disabled={busy || !item.image_path} onClick={async () => {
+          setBusy(true); const it = await onDescribe(item.id); setBusy(false);
+          if (it) setF({ ...it, colors: (it.colors || []).join(", ") });
+        }}><Icon name="sparkle" size={18} />{busy ? "Working…" : isUntagged(item) ? "Describe with AI" : "Re-describe"}</button>
         {confirm
           ? <button className="btn primary" onClick={() => onDelete(item)}>Yes, delete</button>
           : <button className="btn danger" onClick={() => setConfirm(true)}><Icon name="trash" size={18} />Delete</button>}

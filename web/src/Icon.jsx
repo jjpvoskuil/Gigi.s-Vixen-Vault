@@ -13,6 +13,8 @@ const P = {
   check: <path d="M5 12l4 4 10-10" />,
   trash: <><path d="M4 7h16M10 11v6M14 11v6" /><path d="M6 7l1 13h10l1-13M9 7V4h6v3" /></>,
   chev: <path d="M9 6l6 6-6 6" />,
+  camera: <><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></>,
+  photos: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="10" r="1.6" /><path d="M21 16l-5-5-8 8" /></>,
   out: <><path d="M15 4h4v16h-4" /><path d="M10 17l5-5-5-5M15 12H4" /></>,
 };
 

@@ -166,3 +166,31 @@ textarea.in { resize: vertical; min-height: 70px; line-height: 1.4; }
 .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar) + 16px); transform: translateX(-50%); z-index: 60;
   background: var(--leather); color: var(--on-leather); padding: 12px 18px; border-radius: 999px; font-size: 14px;
   box-shadow: 0 10px 24px -8px rgba(20, 13, 15, .6); max-width: calc(100% - 40px); animation: rise .2s ease-out; }
+
+/* ---------------------------------------------------------------- Add */
+.pad { padding: 14px 20px 0; position: relative; }
+.addcard { display: block; padding-bottom: 18px; }
+.addbtns { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.addbtns .btn { padding: 0 10px; font-size: 15px; }
+.btn.chrome { background: linear-gradient(160deg, #F4F5F7, #C3C8CE 55%, #A9AEB5); border-color: #8E949B; color: var(--text); }
+.btn.wide { width: 100%; margin-top: 10px; }
+.queue { list-style: none; margin: 0; padding: 8px 20px 0; display: flex; flex-direction: column; gap: 10px; position: relative; }
+.qrow { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border-radius: 16px; background: var(--card);
+  border: 1px solid var(--line); box-shadow: 0 6px 14px -12px var(--shadow); }
+.qrow img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; background: var(--tile); flex: none; }
+.qtext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.qname { font-size: 15px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qsub { font-size: 12px; color: var(--muted); }
+.qerr { font-size: 12px; color: var(--bad); display: block; }
+.qrow.failed { border-color: #E9B9C1; }
+.icon.ok { color: var(--good); }
+.spin { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.waitcard { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 16px; background: #F6E4E7; color: var(--accent-press); }
+.waitcard b { display: block; font-weight: 600; margin-bottom: 2px; }
+.bar { height: 6px; border-radius: 3px; background: rgba(158, 15, 40, .15); margin-top: 8px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
+.scroll > .pad:last-child, .scroll > .queue:last-child { padding-bottom: 24px; }
+button.banner { width: calc(100% - 40px); text-align: left; }
+.banner b { font-weight: 600; text-decoration: underline; }
+.addbtns .btn, .actions .btn { white-space: nowrap; padding: 0 12px; gap: 8px; }
