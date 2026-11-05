@@ -15,6 +15,7 @@ const P = {
   chev: <path d="M9 6l6 6-6 6" />,
   camera: <><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></>,
   photos: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="10" r="1.6" /><path d="M21 16l-5-5-8 8" /></>,
+  bag: <><path d="M5 8h14l-1 12H6z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></>,
   back: <path d="M15 6l-6 6 6 6" />,
   list: <><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2" /></>,
   out: <><path d="M15 4h4v16h-4" /><path d="M10 17l5-5-5-5M15 12H4" /></>,

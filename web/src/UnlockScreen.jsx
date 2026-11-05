@@ -10,7 +10,7 @@ import { TryOnSheet } from "./TryOn.jsx";
 const WEATHER = ["Spring", "Summer", "Fall", "Winter", "Chilly", "Hot"];
 const COUNTS = [2, 3, 4, 6];
 
-export default function UnlockScreen({ db, items, styles, profile, result, setResult, onWore, onAdd, onSave, onDelete, onDescribe }) {
+export default function UnlockScreen({ db, items, styles, profile, result, setResult, onWore, onAdd, onSave, onDelete, onDescribe, onWish, onShop }) {
   const mine = (profile.my_styles || []).filter((s) => styles.some((x) => x.name === s));
   const options = [...mine, ...styles.map((s) => s.name).filter((s) => !mine.includes(s))];
   const [style, setStyle] = useState(result?.style || options[0] || "");
@@ -24,6 +24,8 @@ export default function UnlockScreen({ db, items, styles, profile, result, setRe
   const [allStyles, setAllStyles] = useState(false);
   const [openId, setOpenId] = useState(null);
   const [trying, setTrying] = useState(null); // the look being tried on
+  const [wished, setWished] = useState({});    // pieces added to the shopping list this visit
+  const wishIt = async (piece, pairs = []) => { if (!wished[piece] && await onWish({ piece, pairs_with: pairs, source: "unlock" })) setWished({ ...wished, [piece]: true }); };
   const top = useRef(null);
   const short = (mine.length ? mine : options.slice(0, 6));
   const shown = allStyles ? options : [...short, ...(short.includes(style) || !style ? [] : [style])];
@@ -111,7 +113,8 @@ export default function UnlockScreen({ db, items, styles, profile, result, setRe
               </div>
               {o.why && <p className="why">{o.why}</p>}
               {o.tip && <p className="tip"><b>Tip</b> {o.tip}</p>}
-              {o.add_piece && <p className="tip"><b>Even better with</b> {o.add_piece}</p>}
+              {o.add_piece && <p className="tip"><b>Even better with</b> {o.add_piece}{" "}
+                <button className="addwish" onClick={() => wishIt(o.add_piece, o.pieces.map((p) => p.id))}>{wished[o.add_piece] ? "✓ on list" : "+ list"}</button></p>}
               <button className="btn primary wide" onClick={() => setTrying(o)}><Icon name="sparkle" size={18} />See it on me</button>
               <button className={`btn ${worn[n] ? "" : "chrome"} wide`} disabled={worn[n]} onClick={async () => {
                 if (await onWore(o.pieces)) setWorn({ ...worn, [n]: true });
@@ -121,7 +124,8 @@ export default function UnlockScreen({ db, items, styles, profile, result, setRe
           {result.closet_gaps?.length > 0 && (
             <div className="pad">
               <div className="field"><span>Pieces that would unlock more {result.style} looks</span>
-                <div className="pills">{result.closet_gaps.map((g) => <span key={g} className="pill gap">{g}</span>)}</div>
+                <div className="pills">{result.closet_gaps.map((g) => <button key={g} className="pill gap" onClick={() => wishIt(g)}>{wished[g] ? "✓ " : "+ "}{g}</button>)}</div>
+                <p className="small muted" style={{ marginTop: 8 }}>Tap one to add it to your shopping list. <button className="link" onClick={onShop}>Shop the gaps →</button></p>
               </div>
             </div>
           )}

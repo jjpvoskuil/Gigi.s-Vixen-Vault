@@ -16,5 +16,8 @@ Newest first. One dated entry per working session.
   vault-ai action `tryon` → Google Gemini image model (`gemini-3.1-flash-image`, ~7¢/picture at 1K, paid tier so
   images aren't used for training). Secrets GEMINI_API_KEY (+ optional GEMINI_IMAGE_MODEL). Results saved to the
   `tryons` table + `vault/tryons/…`, shown in Me → Looks on me; included in backups.
-- Ideas for later: tune the try-on prompt from Gigi's feedback; 2K option; suggest new pieces/colors to buy
-  (closet gaps → shopping list).
+- Shop the gaps (More → Shop the gaps): vault-ai action `shop` suggests pieces + colors to buy that pair with what she
+  owns (focus style, season, budget), each with "goes with" pieces, ≈ new looks, priority and a size-aware Google
+  Shopping link. Wish list in the new `wishlist` table (My list → Bought it → Add photo). Unlock's "even better with"
+  and closet-gap ideas add to the same list with one tap. Needs schema.sql re-run + vault-ai re-paste.
+- Ideas for later: tune the try-on prompt from Gigi's feedback; 2K try-on option.

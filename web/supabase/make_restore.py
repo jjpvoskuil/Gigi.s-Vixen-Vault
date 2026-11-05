@@ -10,9 +10,9 @@ import json
 import sys
 from pathlib import Path
 
-ORDER = ["app_users", "styles", "profile", "items", "body_photos", "tryons", "punchlist"]  # parents before children
+ORDER = ["app_users", "styles", "profile", "items", "body_photos", "tryons", "wishlist", "punchlist"]  # parents before children
 TEXT_ARRAYS = {"colors", "seasons", "styles", "my_styles"}  # text[] columns; dict/list elsewhere = jsonb
-UUID_ARRAYS = {"item_ids"}
+UUID_ARRAYS = {"item_ids", "pairs_with"}
 
 
 def lit(v, col):

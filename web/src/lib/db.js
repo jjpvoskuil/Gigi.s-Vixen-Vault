@@ -10,6 +10,8 @@ const pick = (o, keys) => Object.fromEntries(keys.filter((k) => k in o).map((k) 
 const nowIso = () => new Date().toISOString();
 const lower = (e) => (e || "").trim().toLowerCase();
 const URL_SECONDS = 6 * 3600;
+const WISH_KEYS = ["piece", "category", "color", "why", "search", "pairs_with", "priority", "status", "source"];
+const wishRow = (w) => ({ status: "want", ...pick(w, WISH_KEYS), pairs_with: (w.pairs_with || []).map((x) => (typeof x === "object" ? x.id : x)) });
 
 // ---------------------------------------------------------------- Supabase
 export function supabaseDb(sb, email) {
@@ -56,6 +58,12 @@ export function supabaseDb(sb, email) {
     suggestOutfits: (opts) => callAi({ action: "outfits", ...opts }),
     /** Her body photo wearing these pieces (Gemini): {image (base64), mime, item_ids}. Not saved — see addTryon. */
     tryOn: (bodyPhotoId, itemIds) => callAi({ action: "tryon", body_photo_id: bodyPhotoId, item_ids: itemIds }),
+    /** What to buy next: {summary, suggestions:[{piece, category, color, why, pairs_with:[ids], new_looks, priority, search}], colors}. */
+    suggestShopping: (opts) => callAi({ action: "shop", ...opts }),
+    listWish: async () => ok(await sb.from("wishlist").select("*").order("created_at", { ascending: false })),
+    addWish: async (w) => ok(await sb.from("wishlist").insert(wishRow(w)).select("*").single()),
+    updateWish: async (id, fields) => ok(await sb.from("wishlist").update({ ...fields, updated_at: nowIso() }).eq("id", id)),
+    deleteWish: async (id) => ok(await sb.from("wishlist").delete().eq("id", id)),
     listTryons: async () => ok(await sb.from("tryons").select("*").order("created_at", { ascending: false })),
     async addTryon({ full, thumb }, stem, meta) {
       const paths = [`${stem}.jpg`, `${stem}_thumb.jpg`];
@@ -151,6 +159,24 @@ export function demoDb(seed) {
       const url = st.photos[p.image_path] || "";
       return { image: url.split(",")[1] || "", mime: (url.match(/^data:([^;]+)/) || [])[1] || "image/jpeg", item_ids: itemIds };
     },
+    async suggestShopping({ count = 6 }) { // pretend AI
+      await new Promise((r) => setTimeout(r, 900));
+      const ids = st.items.slice(0, 4).map((i) => i.id);
+      const all = [["Tan suede ankle boots", "shoes", "tan", "must-have", "tan suede ankle boots"],
+        ["Cropped black leather jacket", "outerwear", "black", "must-have", "cropped black leather jacket"],
+        ["Emerald satin cami", "top", "emerald", "nice to have", "emerald satin cami"],
+        ["High-waist wide-leg trousers", "bottom", "cream", "nice to have", "cream high waist wide leg trousers"],
+        ["Silver statement cuff", "jewelry", "silver", "fun extra", "silver statement cuff bracelet"],
+        ["Oxblood crossbody bag", "bag", "oxblood", "fun extra", "oxblood leather crossbody bag"]];
+      return { summary: "Demo: plenty of black tops and denim; short on shoes, layers and color.",
+        suggestions: all.slice(0, count).map(([piece, category, color, priority, search], n) => ({ piece, category, color, priority, search,
+          why: "Pretend reason — the real app asks the AI.", pairs_with: ids.slice(0, 2 + (n % 3)), new_looks: 6 - n })),
+        colors: [{ color: "emerald", why: "Pretend: lifts all the black." }, { color: "cobalt", why: "Pretend: pops with denim." }] };
+    },
+    listWish: async () => clone(st.wish || []),
+    async addWish(w) { const row = { id: crypto.randomUUID(), created_at: nowIso(), updated_at: nowIso(), ...wishRow(w) }; (st.wish ||= []).unshift(row); save(); return clone(row); },
+    updateWish: async (id, fields) => { Object.assign((st.wish || []).find((x) => x.id === id), fields, { updated_at: nowIso() }); save(); },
+    deleteWish: async (id) => { st.wish = (st.wish || []).filter((x) => x.id !== id); save(); },
     listTryons: async () => clone(st.tryons || []),
     async addTryon({ thumb }, stem, meta) {
       const url = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(thumb); });

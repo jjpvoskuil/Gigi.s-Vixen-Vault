@@ -263,3 +263,102 @@ export function readImage(res) {
   }
   return { blocked: cand?.finishReason || "NO_IMAGE" };
 }
+
+// ---------------------------------------------------------------- shopping suggestions (no Python reference)
+export const SHOP_PRIORITY = ["must-have", "nice to have", "fun extra"];
+export const SHOP_TOOL = {
+  name: "suggest_purchases",
+  description: "Suggest new pieces and colors for her to buy, based on the numbered closet items she already owns.",
+  input_schema: {
+    type: "object",
+    properties: {
+      summary: { type: "string", description: "2-3 sentences: what her closet has plenty of, and what's missing" },
+      suggestions: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            piece: { type: "string", description: "Specific piece with color, e.g. 'Tan suede ankle boots with a block heel'" },
+            category: { type: "string", enum: CATEGORIES },
+            color: { type: "string", description: "Plain color name" },
+            why: { type: "string", description: "1-2 sentences: why it suits her figure, colouring and style, and what gap it fills" },
+            pairs_with: { type: "array", items: { type: "integer" }, description: "Closet item numbers it would be worn with (2-6)" },
+            new_looks: { type: "integer", description: "Rough number of new outfits it would make possible" },
+            priority: { type: "string", enum: SHOP_PRIORITY },
+            search: { type: "string", description: "Short shopping search phrase, e.g. 'tan suede block heel ankle boots women'" },
+          },
+          required: ["piece", "category", "color", "why", "pairs_with", "new_looks", "priority", "search"],
+        },
+      },
+      colors: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: { color: { type: "string" }, why: { type: "string", description: "One sentence" } },
+          required: ["color", "why"],
+        },
+        description: "2-4 colors she doesn't own much of that would flatter her and work with what she has",
+      },
+    },
+    required: ["summary", "suggestions", "colors"],
+  },
+};
+
+const BUDGET = { budget: "budget-friendly (think Target, Old Navy, H&M)", mid: "mid-range (think J.Crew, Madewell, Nordstrom brands)",
+  splurge: "a few investment pieces worth spending on" };
+
+export function shopPrompt(usable, profile, { style = "", styleDesc = "", occasion = "", season = "", budget = "", count = 6 } = {}) {
+  return `You are a warm, practical personal stylist helping a woman decide what to buy next. The goal is pieces that work hard with what she ALREADY owns — not a new wardrobe.
+
+ABOUT HER
+${profileText(profile)}
+
+WHAT SHE'S SHOPPING FOR
+Style focus: ${style ? `${style}${styleDesc ? ` — ${styleDesc}` : ""}` : "her favorite styles overall"}
+Occasion / plans: ${occasion || "everyday life"}
+Season / weather: ${season || "the coming season"}
+Budget: ${BUDGET[budget] || "any"}
+
+HER CLOSET (number. details)
+${catalog(usable)}
+
+Suggest up to ${count} pieces to buy, best first.
+Rules:
+- Each suggestion must pair with several things she owns (list their numbers in pairs_with) and fill a real gap — a missing category, color, layer, shoe or bag — rather than duplicate what she has.
+- Respect her color likes/dislikes and what she wants to show off or play down; use her measurements to choose flattering cuts and lengths.
+- Be specific (color, cut, material, length) so she could find it in a store. No brand names unless the budget suggests one.
+- Also suggest 2-4 colors she has little of that would flatter her and mix with her closet.`;
+}
+
+export function shopRequest(usable, profile, opts, model) {
+  return toolRequest(SHOP_TOOL, shopPrompt(usable, profile, opts), 3000, model);
+}
+
+/** Model answer → suggestions with pairs_with mapped to real closet items (bad/repeated numbers dropped). */
+export function readShop(data, usable) {
+  const suggestions = (data.suggestions || []).filter((s) => s && String(s.piece || "").trim()).map((s) => {
+    const seen = new Set(), pairs = [];
+    for (const n of s.pairs_with || []) if (Number.isInteger(n) && n >= 1 && n <= usable.length && !seen.has(n)) { seen.add(n); pairs.push(usable[n - 1]); }
+    return {
+      piece: String(s.piece).trim(), category: CATEGORIES.includes(s.category) ? s.category : "other", color: s.color || "",
+      why: s.why || "", pairs_with: pairs, new_looks: Number.isInteger(s.new_looks) && s.new_looks > 0 ? s.new_looks : 0,
+      priority: SHOP_PRIORITY.includes(s.priority) ? s.priority : "nice to have", search: String(s.search || s.piece).trim(),
+    };
+  });
+  const colors = (data.colors || []).filter((c) => c && c.color).slice(0, 4).map((c) => ({ color: c.color, why: c.why || "" }));
+  return { summary: data.summary || "", suggestions, colors };
+}
+
+/** Which of her usual sizes applies to a category ("" if none). */
+export function sizeFor(category, sizes = {}) {
+  const key = { top: "tops", sweater: "tops", outerwear: "tops", activewear: "tops", bottom: "bottoms", dress: "dresses",
+    jumpsuit: "dresses", swimwear: "tops", sleepwear: "tops", shoes: "shoes" }[category];
+  return (key && sizes[key]) || "";
+}
+
+/** A Google Shopping search for the piece, in her size when we know it. */
+export function shopLink(search, category, sizes) {
+  const size = sizeFor(category, sizes);
+  const q = [search, /\bwomen'?s?\b/i.test(search) ? "" : "women", size && `size ${size}`].filter(Boolean).join(" ");
+  return `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(q)}`;
+}

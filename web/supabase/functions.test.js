@@ -167,3 +167,44 @@ test("try-on: friendly errors (no key, no billing, safety block, no body photo)"
   const [st] = await run([{ status: 503 }, picture], {});
   assert.equal(st, 200, "retries a busy service");
 });
+
+// ---------------------------------------------------------------- shopping suggestions
+test("shop rules: read answer, size-aware search link, prompt carries her focus", () => {
+  const usable = [{ id: "a", name: "Tee" }, { id: "b", name: "Jeans" }];
+  const r = ai.readShop({ summary: "s", suggestions: [
+    { piece: " Tan ankle boots ", category: "shoes", color: "tan", why: "w", pairs_with: [1, 2, 2, 9, 0], new_looks: 5, priority: "must-have", search: "tan ankle boots" },
+    { piece: "", category: "top" },
+    { piece: "Belt", category: "belts?", pairs_with: [], new_looks: -1, priority: "??", search: "" },
+  ], colors: [{ color: "emerald", why: "x" }, { why: "no color" }] }, usable);
+  assert.equal(r.suggestions.length, 2);
+  assert.deepEqual(r.suggestions[0].pairs_with.map((i) => i.id), ["a", "b"]);
+  assert.equal(r.suggestions[0].piece, "Tan ankle boots");
+  assert.deepEqual([r.suggestions[1].category, r.suggestions[1].new_looks, r.suggestions[1].priority, r.suggestions[1].search], ["other", 0, "nice to have", "Belt"]);
+  assert.deepEqual(r.colors, [{ color: "emerald", why: "x" }]);
+  assert.equal(ai.shopLink("tan ankle boots", "shoes", { shoes: "8.5" }), "https://www.google.com/search?tbm=shop&q=tan%20ankle%20boots%20women%20size%208.5");
+  assert.equal(ai.shopLink("women's red belt", "accessory", { shoes: "8.5" }), "https://www.google.com/search?tbm=shop&q=women's%20red%20belt");
+  const p = ai.shopPrompt(usable, { color_notes: "avoid mustard" }, { style: "Edgy", styleDesc: "Leather", budget: "mid", count: 3 });
+  assert.match(p, /Style focus: Edgy — Leather/);
+  assert.match(p, /Budget: mid-range/);
+  assert.match(p, /avoid mustard/);
+  assert.match(p, /Suggest up to 3 pieces/);
+  assert.match(p, /1\. \{"name": "Tee"\}/);
+});
+
+test("shop action: uses described pieces only, returns ids", async () => {
+  const log = [];
+  const answer = toolUse("suggest_purchases", { summary: "Lots of tops.", suggestions: [
+    { piece: "Black moto jacket", category: "outerwear", color: "black", why: "Edge.", pairs_with: [1, 2], new_looks: 4, priority: "must-have", search: "black moto jacket" }],
+    colors: [{ color: "cobalt", why: "Pops." }] });
+  const h = makeHandler({ createClient: fakeSupabase(closet()).client, fetchFn: anthropic([answer], log), env: env(), ai });
+  const r = await h(post({ action: "shop", style: "Edgy", budget: "splurge", count: 3 }));
+  assert.equal(r.status, 200);
+  const out = await r.json();
+  assert.deepEqual(out.suggestions[0].pairs_with, ["t0", "t1"], "item u1 (undescribed) is not in the numbering");
+  assert.equal(out.colors[0].color, "cobalt");
+  const req = log[0];
+  assert.equal(req.tools[0].name, "suggest_purchases");
+  assert.equal(req.tools[0].strict, true);
+  assert.match(req.messages[0].content, /Style focus: Edgy — Leather/);
+  assert.doesNotMatch(req.messages[0].content, /black top from Target/);
+});

@@ -1,6 +1,7 @@
 // Supabase Edge Function "vault-ai": the only place the Anthropic key lives.
 //   POST {action:"describe", item_id}                       → AI-describes one closet photo and saves it
 //   POST {action:"outfits", style, style_desc, occasion, season, count} → outfits from her closet
+//   POST {action:"shop", style, style_desc, occasion, season, budget, count} → what to buy next
 //   POST {action:"tryon", body_photo_id, item_ids}           → {image, mime}: her photo wearing those pieces
 //        (Google Gemini image model; key GEMINI_API_KEY, model GEMINI_IMAGE_MODEL — the app saves the result)
 // Runs as the signed-in person (their sign-in token), so the database's row-level security applies: only
@@ -126,6 +127,24 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
     return { image: res.image, mime: res.mime, item_ids: items.map((i) => i.id) };
   }
 
+  async function shop(sb, body) {
+    const [items, prof, styles] = await Promise.all([
+      sb.from("items").select("*").order("created_at", { ascending: false }),
+      sb.from("profile").select("*").eq("id", 1).maybeSingle(),
+      sb.from("styles").select("name,description"),
+    ]);
+    const usable = ok(items).filter((i) => !ai.isUntagged(i));
+    if (usable.length < 4) throw new Friendly("Describe a few more pieces first — suggestions need at least 4 described items.", 400);
+    const style = String(body.style || "").trim();
+    const opts = {
+      style, styleDesc: style ? (body.style_desc ?? (ok(styles).find((s) => s.name === style)?.description || "")) : "",
+      occasion: String(body.occasion || ""), season: String(body.season || ""), budget: String(body.budget || ""),
+      count: Math.min(8, Math.max(2, parseInt(body.count, 10) || 6)),
+    };
+    const res = ai.readShop(await ask(ai.shopRequest(usable, ok(prof) || {}, opts, model()), "suggest_purchases"), usable);
+    return { ...res, suggestions: res.suggestions.map((s) => ({ ...s, pairs_with: s.pairs_with.map((i) => i.id) })) };
+  }
+
   async function outfits(sb, body) {
     const [items, prof, styles] = await Promise.all([
       sb.from("items").select("*").order("created_at", { ascending: false }),
@@ -155,6 +174,7 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
       const body = await req.json().catch(() => ({}));
       if (body.action === "describe") return reply(200, await describe(sb, body));
       if (body.action === "outfits") return reply(200, await outfits(sb, body));
+      if (body.action === "shop") return reply(200, await shop(sb, body));
       if (body.action === "tryon") return reply(200, await tryon(sb, body));
       return reply(400, { error: "Unknown action" });
     } catch (e) {

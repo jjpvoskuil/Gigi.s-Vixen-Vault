@@ -5,6 +5,7 @@ import AddScreen from "./AddScreen.jsx";
 import UnlockScreen from "./UnlockScreen.jsx";
 import MeScreen from "./MeScreen.jsx";
 import PunchScreen from "./PunchScreen.jsx";
+import ShopScreen from "./ShopScreen.jsx";
 import { Dial, Head, TabBar } from "./Shell.jsx";
 import Icon from "./Icon.jsx";
 import { demoSeed } from "./demo.js";
@@ -20,7 +21,8 @@ export default function App() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [moreView, setMoreView] = useState("menu");     // More tab: "menu" | "punch"
-  const [looks, setLooks] = useState(null);           // last outfit results (kept across tabs)
+  const [looks, setLooks] = useState(null);
+  const [ideas, setIdeas] = useState(null);           // last shopping suggestions (kept across tabs)           // last outfit results (kept across tabs)
   const [tab, setTabState] = useState(() => { const h = location.hash.slice(1); return TAB_IDS.includes(h) ? h : "closet"; });
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 2600); return () => clearTimeout(t); }, [toast]);
   const go = (id) => { if (id === "more" && tab === "more") setMoreView("menu"); setTabState(id); history.replaceState(null, "", `#${id}`); };
@@ -91,16 +93,24 @@ export default function App() {
       {tab === "unlock" && (
         <UnlockScreen db={db} items={data.items} styles={data.styles} profile={data.profile} result={looks} setResult={setLooks}
           onAdd={() => go("add")} {...itemActions}
+          onWish={async (w) => { try { await db.addWish(w); setToast("Added to your shopping list"); return true; } catch (e) { setToast(e.message); return false; } }}
+          onShop={() => { setMoreView("shop"); go("more"); }}
           onWore={(pieces) => save(async (d) => { for (const p of pieces) await d.saveItem(p.id, { times_worn: (p.times_worn || 0) + 1 }); }, "Logged — enjoy!")} />
       )}
       {tab === "add" && <AddScreen db={db} items={data.items} reload={load} onCloset={() => go("closet")} />}
       {tab === "me" && <MeScreen db={db} profile={data.profile} styles={data.styles} items={data.items} save={save} />}
       {tab === "more" && moreView === "punch" && <PunchScreen db={db} email={session.user.email} onBack={() => setMoreView("menu")} toast={setToast} />}
+      {tab === "more" && moreView === "shop" && (
+        <ShopScreen db={db} items={data.items} styles={data.styles} profile={data.profile} result={ideas} setResult={setIdeas}
+          onBack={() => setMoreView("menu")} onAdd={() => go("add")} toast={setToast} />
+      )}
       {tab === "more" && moreView === "menu" && (
         <div className="scroll">
           <Dial />
           <Head title="More" />
           <ul className="menu">
+            <li><button onClick={() => setMoreView("shop")}><Icon name="bag" size={22} />
+              <span><b>Shop the gaps</b><em>Pieces & colors to buy that work with your closet</em></span><Icon name="chev" size={18} /></button></li>
             <li><button onClick={() => setMoreView("punch")}><Icon name="list" size={22} />
               <span><b>Punch list</b><em>Bugs, changes & ideas for Claude to work on</em></span><Icon name="chev" size={18} /></button></li>
             <li><button onClick={signOut}><Icon name="out" size={22} />

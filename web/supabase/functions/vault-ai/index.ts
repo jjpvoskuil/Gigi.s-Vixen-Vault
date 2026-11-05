@@ -269,10 +269,110 @@ function readImage(res) {
   return { blocked: cand?.finishReason || "NO_IMAGE" };
 }
 
+// ---------------------------------------------------------------- shopping suggestions (no Python reference)
+const SHOP_PRIORITY = ["must-have", "nice to have", "fun extra"];
+const SHOP_TOOL = {
+  name: "suggest_purchases",
+  description: "Suggest new pieces and colors for her to buy, based on the numbered closet items she already owns.",
+  input_schema: {
+    type: "object",
+    properties: {
+      summary: { type: "string", description: "2-3 sentences: what her closet has plenty of, and what's missing" },
+      suggestions: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            piece: { type: "string", description: "Specific piece with color, e.g. 'Tan suede ankle boots with a block heel'" },
+            category: { type: "string", enum: CATEGORIES },
+            color: { type: "string", description: "Plain color name" },
+            why: { type: "string", description: "1-2 sentences: why it suits her figure, colouring and style, and what gap it fills" },
+            pairs_with: { type: "array", items: { type: "integer" }, description: "Closet item numbers it would be worn with (2-6)" },
+            new_looks: { type: "integer", description: "Rough number of new outfits it would make possible" },
+            priority: { type: "string", enum: SHOP_PRIORITY },
+            search: { type: "string", description: "Short shopping search phrase, e.g. 'tan suede block heel ankle boots women'" },
+          },
+          required: ["piece", "category", "color", "why", "pairs_with", "new_looks", "priority", "search"],
+        },
+      },
+      colors: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: { color: { type: "string" }, why: { type: "string", description: "One sentence" } },
+          required: ["color", "why"],
+        },
+        description: "2-4 colors she doesn't own much of that would flatter her and work with what she has",
+      },
+    },
+    required: ["summary", "suggestions", "colors"],
+  },
+};
+
+const BUDGET = { budget: "budget-friendly (think Target, Old Navy, H&M)", mid: "mid-range (think J.Crew, Madewell, Nordstrom brands)",
+  splurge: "a few investment pieces worth spending on" };
+
+function shopPrompt(usable, profile, { style = "", styleDesc = "", occasion = "", season = "", budget = "", count = 6 } = {}) {
+  return `You are a warm, practical personal stylist helping a woman decide what to buy next. The goal is pieces that work hard with what she ALREADY owns — not a new wardrobe.
+
+ABOUT HER
+${profileText(profile)}
+
+WHAT SHE'S SHOPPING FOR
+Style focus: ${style ? `${style}${styleDesc ? ` — ${styleDesc}` : ""}` : "her favorite styles overall"}
+Occasion / plans: ${occasion || "everyday life"}
+Season / weather: ${season || "the coming season"}
+Budget: ${BUDGET[budget] || "any"}
+
+HER CLOSET (number. details)
+${catalog(usable)}
+
+Suggest up to ${count} pieces to buy, best first.
+Rules:
+- Each suggestion must pair with several things she owns (list their numbers in pairs_with) and fill a real gap — a missing category, color, layer, shoe or bag — rather than duplicate what she has.
+- Respect her color likes/dislikes and what she wants to show off or play down; use her measurements to choose flattering cuts and lengths.
+- Be specific (color, cut, material, length) so she could find it in a store. No brand names unless the budget suggests one.
+- Also suggest 2-4 colors she has little of that would flatter her and mix with her closet.`;
+}
+
+function shopRequest(usable, profile, opts, model) {
+  return toolRequest(SHOP_TOOL, shopPrompt(usable, profile, opts), 3000, model);
+}
+
+/** Model answer → suggestions with pairs_with mapped to real closet items (bad/repeated numbers dropped). */
+function readShop(data, usable) {
+  const suggestions = (data.suggestions || []).filter((s) => s && String(s.piece || "").trim()).map((s) => {
+    const seen = new Set(), pairs = [];
+    for (const n of s.pairs_with || []) if (Number.isInteger(n) && n >= 1 && n <= usable.length && !seen.has(n)) { seen.add(n); pairs.push(usable[n - 1]); }
+    return {
+      piece: String(s.piece).trim(), category: CATEGORIES.includes(s.category) ? s.category : "other", color: s.color || "",
+      why: s.why || "", pairs_with: pairs, new_looks: Number.isInteger(s.new_looks) && s.new_looks > 0 ? s.new_looks : 0,
+      priority: SHOP_PRIORITY.includes(s.priority) ? s.priority : "nice to have", search: String(s.search || s.piece).trim(),
+    };
+  });
+  const colors = (data.colors || []).filter((c) => c && c.color).slice(0, 4).map((c) => ({ color: c.color, why: c.why || "" }));
+  return { summary: data.summary || "", suggestions, colors };
+}
+
+/** Which of her usual sizes applies to a category ("" if none). */
+function sizeFor(category, sizes = {}) {
+  const key = { top: "tops", sweater: "tops", outerwear: "tops", activewear: "tops", bottom: "bottoms", dress: "dresses",
+    jumpsuit: "dresses", swimwear: "tops", sleepwear: "tops", shoes: "shoes" }[category];
+  return (key && sizes[key]) || "";
+}
+
+/** A Google Shopping search for the piece, in her size when we know it. */
+function shopLink(search, category, sizes) {
+  const size = sizeFor(category, sizes);
+  const q = [search, /\bwomen'?s?\b/i.test(search) ? "" : "women", size && `size ${size}`].filter(Boolean).join(" ");
+  return `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(q)}`;
+}
+
 // ---------------------------------------------------------------- functions/vault-ai/handler.js
 // Supabase Edge Function "vault-ai": the only place the Anthropic key lives.
 //   POST {action:"describe", item_id}                       → AI-describes one closet photo and saves it
 //   POST {action:"outfits", style, style_desc, occasion, season, count} → outfits from her closet
+//   POST {action:"shop", style, style_desc, occasion, season, budget, count} → what to buy next
 //   POST {action:"tryon", body_photo_id, item_ids}           → {image, mime}: her photo wearing those pieces
 //        (Google Gemini image model; key GEMINI_API_KEY, model GEMINI_IMAGE_MODEL — the app saves the result)
 // Runs as the signed-in person (their sign-in token), so the database's row-level security applies: only
@@ -398,6 +498,24 @@ function makeHandler({ createClient, fetchFn, env, ai }) {
     return { image: res.image, mime: res.mime, item_ids: items.map((i) => i.id) };
   }
 
+  async function shop(sb, body) {
+    const [items, prof, styles] = await Promise.all([
+      sb.from("items").select("*").order("created_at", { ascending: false }),
+      sb.from("profile").select("*").eq("id", 1).maybeSingle(),
+      sb.from("styles").select("name,description"),
+    ]);
+    const usable = ok(items).filter((i) => !ai.isUntagged(i));
+    if (usable.length < 4) throw new Friendly("Describe a few more pieces first — suggestions need at least 4 described items.", 400);
+    const style = String(body.style || "").trim();
+    const opts = {
+      style, styleDesc: style ? (body.style_desc ?? (ok(styles).find((s) => s.name === style)?.description || "")) : "",
+      occasion: String(body.occasion || ""), season: String(body.season || ""), budget: String(body.budget || ""),
+      count: Math.min(8, Math.max(2, parseInt(body.count, 10) || 6)),
+    };
+    const res = ai.readShop(await ask(ai.shopRequest(usable, ok(prof) || {}, opts, model()), "suggest_purchases"), usable);
+    return { ...res, suggestions: res.suggestions.map((s) => ({ ...s, pairs_with: s.pairs_with.map((i) => i.id) })) };
+  }
+
   async function outfits(sb, body) {
     const [items, prof, styles] = await Promise.all([
       sb.from("items").select("*").order("created_at", { ascending: false }),
@@ -427,6 +545,7 @@ function makeHandler({ createClient, fetchFn, env, ai }) {
       const body = await req.json().catch(() => ({}));
       if (body.action === "describe") return reply(200, await describe(sb, body));
       if (body.action === "outfits") return reply(200, await outfits(sb, body));
+      if (body.action === "shop") return reply(200, await shop(sb, body));
       if (body.action === "tryon") return reply(200, await tryon(sb, body));
       return reply(400, { error: "Unknown action" });
     } catch (e) {
@@ -435,5 +554,5 @@ function makeHandler({ createClient, fetchFn, env, ai }) {
   };
 }
 
-const ai = { isUntagged, tagRequest, cleanTag, mergeDescribe, outfitRequest, readOutfits, toolAnswer, tryonOrder, tryonPrompt, tryonRequest, readImage };
+const ai = { isUntagged, tagRequest, cleanTag, mergeDescribe, outfitRequest, readOutfits, toolAnswer, tryonOrder, tryonPrompt, tryonRequest, readImage, shopRequest, readShop };
 Deno.serve(makeHandler({ createClient, fetchFn: fetch, env: (k) => Deno.env.get(k), ai }));

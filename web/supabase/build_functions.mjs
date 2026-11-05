@@ -15,7 +15,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 ${ai}
 // ---------------------------------------------------------------- functions/vault-ai/handler.js
 ${handler}
-const ai = { isUntagged, tagRequest, cleanTag, mergeDescribe, outfitRequest, readOutfits, toolAnswer, tryonOrder, tryonPrompt, tryonRequest, readImage };
+const ai = { isUntagged, tagRequest, cleanTag, mergeDescribe, outfitRequest, readOutfits, toolAnswer, tryonOrder, tryonPrompt, tryonRequest, readImage, shopRequest, readShop };
 Deno.serve(makeHandler({ createClient, fetchFn: fetch, env: (k) => Deno.env.get(k), ai }));
 `;
 }
