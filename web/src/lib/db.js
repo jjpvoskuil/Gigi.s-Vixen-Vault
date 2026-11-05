@@ -17,14 +17,15 @@ export function supabaseDb(sb, email) {
   const ok = (r) => { if (r.error) throw new Error(r.error.message); return r.data; };
   const urlCache = new Map(); // path -> {url, until}
   const bucket = () => sb.storage.from(BUCKET);
-  async function callAi(body) {
-    const { data, error } = await sb.functions.invoke("vault-ai", { body });
+  async function callFn(name, body) {
+    const { data, error } = await sb.functions.invoke(name, { body });
     if (!error) return data;
     let msg = error.message;
     try { const j = await error.context.json(); if (j?.error) msg = j.error; } catch { /* keep msg */ }
-    if (/Failed to send|fetch/i.test(msg)) msg = "Couldn't reach the AI helper — check your connection (or it isn't set up in Supabase yet).";
+    if (/Failed to send|fetch/i.test(msg)) msg = `Couldn't reach the ${name === "vault-ai" ? "AI" : "punch list"} helper — check your connection (or it isn't set up in Supabase yet).`;
     throw new Error(msg);
   }
+  const callAi = (body) => callFn("vault-ai", body);
   return {
     kind: "supabase", email: me,
     async whoami() { const u = ok(await sb.from("app_users").select("*").eq("email", me)); return u[0] || null; },
@@ -53,6 +54,9 @@ export function supabaseDb(sb, email) {
     describeItem: async (id) => (await callAi({ action: "describe", item_id: id })).item,
     /** Outfits from her closet: {outfits:[{title, items:[ids], why, tip, add_piece}], closet_gaps}. */
     suggestOutfits: (opts) => callAi({ action: "outfits", ...opts }),
+
+    /** Punch list (vault-punch server function): list/add/edit/status/delete/shot. */
+    punch: (action, body = {}) => callFn("vault-punch", { action, ...body }),
 
     getProfile: async () => (ok(await sb.from("profile").select("*").eq("id", 1))[0] || { id: 1, measurements: {}, sizes: {}, my_styles: [] }),
     saveProfile: async (fields) => ok(await sb.from("profile").upsert({ ...fields, id: 1, updated_at: nowIso() })),
@@ -135,6 +139,20 @@ export function demoDb(seed) {
           tip: "Pretend tip: tuck the front.", add_piece: n === 0 ? "silver statement cuff" : "" });
       }
       return { outfits: looks, closet_gaps: ["black ankle-strap heels", "cropped leather jacket"] };
+    },
+    async punch(action, b = {}) { // browser-only stand-in with the same rules
+      const P = await import("./punch.js");
+      st.punch ||= [{ ...P.newItem({ title: "Demo: make the hearts bigger", type: "Change", page: "Closet", added_by: "Gigi" }), id: "demo0001" }];
+      st.shots ||= {};
+      const shot = (id) => { if (!b.shot) return null; const p = P.shotPath(id); st.shots[p] = b.shot; return p; };
+      let out;
+      if (action === "list") out = { items: st.punch };
+      else if (action === "add") { const id = P.newId(); const p = shot(id); out = { item: P.newItem(b.fields, p ? [p] : [], id) }; st.punch.push(out.item); }
+      else if (action === "edit") out = { item: P.applyEdit(st.punch, b.id, { fields: b.fields || {}, shot: shot(b.id), comment: b.comment }) };
+      else if (action === "status") out = { item: P.applyStatus(st.punch, b.id, b.status) };
+      else if (action === "delete") { st.punch = st.punch.filter((x) => x.id !== b.id); out = { ok: true }; }
+      else if (action === "shot") out = { data: st.shots[b.path] || "" };
+      save(); return clone(out);
     },
     getProfile: async () => clone(st.profile),
     saveProfile: async (fields) => { Object.assign(st.profile, fields); save(); },

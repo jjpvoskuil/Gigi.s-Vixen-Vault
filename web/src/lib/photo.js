@@ -45,3 +45,14 @@ export function photoStem(folder) {
   const rnd = Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => b.toString(16).padStart(2, "0")).join("");
   return `${folder}/${day}-${rnd}`;
 }
+
+/** A screenshot as base64 JPEG (1400 px long edge), for the punch list. */
+export async function screenshotB64(file) {
+  let img;
+  try { img = await decode(file); } catch { throw new Error("This picture format can't be opened here — try a PNG or JPEG."); }
+  const blob = await toJpeg(img, 1400, 0.85);
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}

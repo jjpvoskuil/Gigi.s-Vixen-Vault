@@ -252,3 +252,40 @@ button.banner { width: calc(100% - 40px); text-align: left; }
 .confirmbar { margin-bottom: 14px; padding: 14px; border-radius: 16px; background: #F6E4E7; color: var(--accent-press); font-size: 14px; font-weight: 500; }
 .confirmbar .actions .btn { flex: 1; }
 body:has(.selbar) .toast { bottom: calc(var(--tabbar) + 90px); }
+
+/* ---------------------------------------------------------------- More + Punch list */
+.menu { list-style: none; margin: 20px 20px 0; padding: 0; border-radius: var(--r-card); background: var(--card); border: 1px solid var(--line);
+  overflow: hidden; position: relative; }
+.menu li + li { border-top: 1px solid var(--line); }
+.menu button { width: 100%; display: flex; align-items: center; gap: 14px; padding: 16px; text-align: left; min-height: 64px; }
+.menu button > span { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.menu b { font-weight: 600; font-size: 16px; }
+.menu em { font-style: normal; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.menu .icon:first-child { color: var(--accent); }
+.punchlist { list-style: none; margin: 0; padding: 10px 20px 0; display: flex; flex-direction: column; gap: 10px; position: relative; }
+.prow { width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 16px; background: var(--card);
+  border: 1px solid var(--line); text-align: left; box-shadow: 0 6px 14px -12px var(--shadow); }
+.prow.done { opacity: .7; }
+.pmark { font-size: 20px; line-height: 1.2; }
+.ptext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ptitle { font-size: 15px; font-weight: 500; line-height: 1.3; }
+.hi { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 6px; background: var(--accent); color: #fff; font-size: 10px;
+  letter-spacing: .08em; text-transform: uppercase; vertical-align: 2px; }
+.pmeta { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+.ptext .pmeta { margin: 0; }
+.pdev { font-size: 12px; color: var(--good); }
+.chip { flex: none; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 999px; background: #F6E4E7; color: var(--accent-press); }
+.chip.s-Inprogress { background: #FFF1D6; color: #7A5200; }
+.chip.s-Done { background: #E1F0E6; color: var(--good); }
+.chip.s-Wontdo { background: var(--tile); color: var(--muted); }
+.pdetails { white-space: pre-wrap; font-size: 15px; line-height: 1.45; margin: 0 0 8px; }
+.pshot { margin: 12px 0; border-radius: 14px; overflow: hidden; background: var(--tile); }
+.pshot img { width: 100%; display: block; }
+.pshot span { display: block; padding: 14px; }
+.pnote { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 14px; }
+.pnote span { color: var(--muted); font-size: 12px; margin-left: 4px; }
+.pnote p { margin: 4px 0 0; white-space: pre-wrap; }
+.pnote.dev { background: #E1F0E6; border-color: #C3E0CC; }
+.shotpick { display: flex; align-items: flex-end; gap: 10px; }
+.shotpick img { width: 96px; border-radius: 10px; border: 1px solid var(--line); }
+.pshot img { max-height: 60vh; object-fit: contain; }

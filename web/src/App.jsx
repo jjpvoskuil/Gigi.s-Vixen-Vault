@@ -4,7 +4,8 @@ import ClosetScreen from "./ClosetScreen.jsx";
 import AddScreen from "./AddScreen.jsx";
 import UnlockScreen from "./UnlockScreen.jsx";
 import MeScreen from "./MeScreen.jsx";
-import { Dial, TabBar } from "./Shell.jsx";
+import PunchScreen from "./PunchScreen.jsx";
+import { Dial, Head, TabBar } from "./Shell.jsx";
 import Icon from "./Icon.jsx";
 import { demoSeed } from "./demo.js";
 import { demoDb, supabaseDb } from "./lib/db.js";
@@ -18,10 +19,11 @@ export default function App() {
   const [data, setData] = useState(null);             // {items, styles, profile}
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const [moreView, setMoreView] = useState("menu");     // More tab: "menu" | "punch"
   const [looks, setLooks] = useState(null);           // last outfit results (kept across tabs)
   const [tab, setTabState] = useState(() => { const h = location.hash.slice(1); return TAB_IDS.includes(h) ? h : "closet"; });
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 2600); return () => clearTimeout(t); }, [toast]);
-  const go = (id) => { setTabState(id); history.replaceState(null, "", `#${id}`); };
+  const go = (id) => { if (id === "more" && tab === "more") setMoreView("menu"); setTabState(id); history.replaceState(null, "", `#${id}`); };
 
   useEffect(() => {
     if (demo) { setSession({ user: { email: "demo@example.com" } }); return; }
@@ -93,14 +95,17 @@ export default function App() {
       )}
       {tab === "add" && <AddScreen db={db} items={data.items} reload={load} onCloset={() => go("closet")} />}
       {tab === "me" && <MeScreen db={db} profile={data.profile} styles={data.styles} save={save} />}
-      {tab === "more" && (
+      {tab === "more" && moreView === "punch" && <PunchScreen db={db} email={session.user.email} onBack={() => setMoreView("menu")} toast={setToast} />}
+      {tab === "more" && moreView === "menu" && (
         <div className="scroll">
           <Dial />
-          <header className="head"><div className="titles"><span className="eyebrow">Gigi's</span><h1 className="title">More</h1></div></header>
-          <div style={{ padding: "24px 20px" }}>
-            <p className="muted small">Signed in as {session.user.email}</p>
-            <button className="btn" onClick={signOut}><Icon name="out" size={18} />Sign out</button>
-          </div>
+          <Head title="More" />
+          <ul className="menu">
+            <li><button onClick={() => setMoreView("punch")}><Icon name="list" size={22} />
+              <span><b>Punch list</b><em>Bugs, changes & ideas for Claude to work on</em></span><Icon name="chev" size={18} /></button></li>
+            <li><button onClick={signOut}><Icon name="out" size={22} />
+              <span><b>Sign out</b><em>{session.user.email}</em></span></button></li>
+          </ul>
         </div>
       )}
       <TabBar tab={tab} onTab={go} />

@@ -31,7 +31,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 ${punch}
 // ---------------------------------------------------------------- functions/vault-punch/handler.js
 ${handler}
-Deno.serve(makePunchHandler({ createClient, fetchFn: fetch, env: (k) => Deno.env.get(k) }));
+const punch = { newId, shotPath, newItem, applyEdit, applyStatus, textToB64, b64ToText, fileText };
+Deno.serve(makePunchHandler({ createClient, fetchFn: fetch, env: (k) => Deno.env.get(k), punch }));
 `;
 }
 
