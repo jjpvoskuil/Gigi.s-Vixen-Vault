@@ -3,7 +3,8 @@ import { supabase, configured } from "./supabase.js";
 import ClosetScreen from "./ClosetScreen.jsx";
 import AddScreen from "./AddScreen.jsx";
 import UnlockScreen from "./UnlockScreen.jsx";
-import { Dial, Soon, TabBar } from "./Shell.jsx";
+import MeScreen from "./MeScreen.jsx";
+import { Dial, TabBar } from "./Shell.jsx";
 import Icon from "./Icon.jsx";
 import { demoSeed } from "./demo.js";
 import { demoDb, supabaseDb } from "./lib/db.js";
@@ -86,7 +87,7 @@ export default function App() {
           onWore={(pieces) => save(async (d) => { for (const p of pieces) await d.saveItem(p.id, { times_worn: (p.times_worn || 0) + 1 }); }, "Logged — enjoy!")} />
       )}
       {tab === "add" && <AddScreen db={db} items={data.items} reload={load} onCloset={() => go("closet")} />}
-      {tab === "me" && <Soon title="Me" what="Measurements, body photos and your styles." />}
+      {tab === "me" && <MeScreen db={db} profile={data.profile} styles={data.styles} save={save} />}
       {tab === "more" && (
         <div className="scroll">
           <Dial />

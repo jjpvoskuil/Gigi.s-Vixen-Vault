@@ -58,6 +58,21 @@ export function supabaseDb(sb, email) {
     saveProfile: async (fields) => ok(await sb.from("profile").upsert({ ...fields, id: 1, updated_at: nowIso() })),
     listStyles: async () => ok(await sb.from("styles").select("*").order("sort_order").order("name")),
     listBodyPhotos: async () => ok(await sb.from("body_photos").select("*").order("created_at")),
+    async addBodyPhoto({ full, thumb }, stem, label) {
+      const paths = [`${stem}.jpg`, `${stem}_thumb.jpg`];
+      ok(await bucket().upload(paths[0], full, { contentType: "image/jpeg" }));
+      ok(await bucket().upload(paths[1], thumb, { contentType: "image/jpeg" }));
+      try { ok(await sb.from("body_photos").insert({ label, image_path: paths[0], thumb_path: paths[1] })); }
+      catch (e) { await bucket().remove(paths); throw e; }
+    },
+    updateBodyPhoto: async (id, label) => ok(await sb.from("body_photos").update({ label }).eq("id", id)),
+    deleteBodyPhoto: async (p) => {
+      ok(await sb.from("body_photos").delete().eq("id", p.id));
+      const paths = [p.image_path, p.thumb_path].filter(Boolean);
+      if (paths.length) await bucket().remove(paths);
+    },
+    addStyle: async (name, description = "") => ok(await sb.from("styles").upsert({ name: name.trim(), description: description.trim(), custom: true, sort_order: 200 })),
+    deleteStyle: async (name) => ok(await sb.from("styles").delete().eq("name", name)),
 
     /** Temporary private links for photos: {path: url}. Cached until shortly before they expire. */
     async photoUrls(paths) {
@@ -125,6 +140,15 @@ export function demoDb(seed) {
     saveProfile: async (fields) => { Object.assign(st.profile, fields); save(); },
     listStyles: async () => clone(st.styles),
     listBodyPhotos: async () => clone(st.body),
+    async addBodyPhoto({ thumb }, stem, label) {
+      const url = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(thumb); });
+      const p = { id: crypto.randomUUID(), created_at: nowIso(), label, image_path: `${stem}.jpg`, thumb_path: `${stem}_thumb.jpg` };
+      st.photos[p.image_path] = st.photos[p.thumb_path] = url; st.body.push(p); save();
+    },
+    updateBodyPhoto: async (id, label) => { st.body.find((p) => p.id === id).label = label; save(); },
+    deleteBodyPhoto: async (p) => { st.body = st.body.filter((x) => x.id !== p.id); save(); },
+    addStyle: async (name, description = "") => { st.styles = st.styles.filter((s) => s.name !== name.trim()).concat({ name: name.trim(), description, custom: true, sort_order: 200 }); save(); },
+    deleteStyle: async (name) => { st.styles = st.styles.filter((s) => s.name !== name); save(); },
     photoUrls: async (paths) => Object.fromEntries(paths.filter(Boolean).map((p) => [p, st.photos[p] || ""])),
   };
 }
