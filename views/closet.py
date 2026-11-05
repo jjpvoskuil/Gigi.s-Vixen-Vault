@@ -35,7 +35,7 @@ if untagged and config.ai_enabled():
                 st.session_state.retag_running = False
             st.rerun()
         else:
-            st.markdown(f"**{len(untagged)} item{'s' if len(untagged) != 1 else ''} still need a description** "
+            st.markdown(f"**{len(untagged)} item{'s still need' if len(untagged) != 1 else ' still needs'} a description** "
                         "(type, colors, styles). Outfit picks depend on these.")
             if st.session_state.get("retag_error"):
                 st.error(st.session_state.retag_error, icon=":material/error:")
