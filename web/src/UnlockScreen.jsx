@@ -5,6 +5,7 @@ import Icon from "./Icon.jsx";
 import { Dial, Head, Studs } from "./Shell.jsx";
 import { isUntagged } from "./lib/closet.js";
 import { ItemSheet } from "./ClosetScreen.jsx";
+import { TryOnSheet } from "./TryOn.jsx";
 
 const WEATHER = ["Spring", "Summer", "Fall", "Winter", "Chilly", "Hot"];
 const COUNTS = [2, 3, 4, 6];
@@ -22,6 +23,7 @@ export default function UnlockScreen({ db, items, styles, profile, result, setRe
   const [worn, setWorn] = useState({});
   const [allStyles, setAllStyles] = useState(false);
   const [openId, setOpenId] = useState(null);
+  const [trying, setTrying] = useState(null); // the look being tried on
   const top = useRef(null);
   const short = (mine.length ? mine : options.slice(0, 6));
   const shown = allStyles ? options : [...short, ...(short.includes(style) || !style ? [] : [style])];
@@ -110,6 +112,7 @@ export default function UnlockScreen({ db, items, styles, profile, result, setRe
               {o.why && <p className="why">{o.why}</p>}
               {o.tip && <p className="tip"><b>Tip</b> {o.tip}</p>}
               {o.add_piece && <p className="tip"><b>Even better with</b> {o.add_piece}</p>}
+              <button className="btn primary wide" onClick={() => setTrying(o)}><Icon name="sparkle" size={18} />See it on me</button>
               <button className={`btn ${worn[n] ? "" : "chrome"} wide`} disabled={worn[n]} onClick={async () => {
                 if (await onWore(o.pieces)) setWorn({ ...worn, [n]: true });
               }}>{worn[n] ? <><Icon name="check" size={18} />Logged — enjoy</> : "I'm wearing this today"}</button>
@@ -124,6 +127,7 @@ export default function UnlockScreen({ db, items, styles, profile, result, setRe
           )}
         </>
       )}
+      {trying && <TryOnSheet db={db} pieces={trying.pieces} title={trying.title} style={result?.style || ""} onClose={() => setTrying(null)} />}
       {byId[openId] && <ItemSheet db={db} item={byId[openId]} styles={styles} onClose={() => setOpenId(null)} onSave={onSave} onDescribe={onDescribe}
         onDelete={async (it) => { if (await onDelete(it)) setOpenId(null); }} />}
     </div>

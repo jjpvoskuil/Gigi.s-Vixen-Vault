@@ -94,7 +94,7 @@ export default function App() {
           onWore={(pieces) => save(async (d) => { for (const p of pieces) await d.saveItem(p.id, { times_worn: (p.times_worn || 0) + 1 }); }, "Logged — enjoy!")} />
       )}
       {tab === "add" && <AddScreen db={db} items={data.items} reload={load} onCloset={() => go("closet")} />}
-      {tab === "me" && <MeScreen db={db} profile={data.profile} styles={data.styles} save={save} />}
+      {tab === "me" && <MeScreen db={db} profile={data.profile} styles={data.styles} items={data.items} save={save} />}
       {tab === "more" && moreView === "punch" && <PunchScreen db={db} email={session.user.email} onBack={() => setMoreView("menu")} toast={setToast} />}
       {tab === "more" && moreView === "menu" && (
         <div className="scroll">

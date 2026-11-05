@@ -13,12 +13,13 @@ function fakeSupabase(db, { approved = true, photo = new Uint8Array([1, 2, 3]) }
   const q = (table) => {
     const st = { table, filters: [], op: "select", row: null, single: false };
     const run = () => {
-      let rows = (db[table] || []).filter((r) => st.filters.every(([k, v]) => r[k] === v));
+      let rows = (db[table] || []).filter((r) => st.filters.every(([k, v]) => r[k] === v) && (!st.ins || st.ins[1].includes(r[st.ins[0]])));
       if (st.op === "update") { rows.forEach((r) => Object.assign(r, st.row)); calls.push(["update", table, st.row]); }
       return { data: st.single ? rows[0] ?? null : rows.map((r) => ({ ...r })), error: null };
     };
     const b = {
       select() { return b; }, order() { return b; }, eq(k, v) { st.filters.push([k, v]); return b; },
+      in(k, vs) { st.ins = [k, vs]; return b; },
       update(row) { st.op = "update"; st.row = row; return b; }, maybeSingle() { st.single = true; return b; },
       then(res, rej) { return Promise.resolve(run()).then(res, rej); },
     };
@@ -117,4 +118,52 @@ test("the pasteable index.ts is up to date and loads", async () => {
   writeFileSync(f, built.replace(/^import .*$/m, "const createClient = () => null;")
     .replace(/^Deno\.serve\(.*$/m, "export const ok = typeof makeHandler === 'function';"));
   assert.equal((await import(f)).ok, true);
+});
+
+// ---------------------------------------------------------------- try-on
+const gem = (answers, log = []) => async (url, init) => {
+  log.push({ url, headers: init.headers, body: JSON.parse(init.body) });
+  const a = answers.shift();
+  if (a.status) return new Response(a.text || "", { status: a.status });
+  return new Response(JSON.stringify(a), { status: 200 });
+};
+const picture = { candidates: [{ content: { parts: [{ text: "here" }, { inlineData: { mimeType: "image/png", data: "UE5H" } }] }, finishReason: "STOP" }] };
+function wardrobe() {
+  const c = closet();
+  c.items.push({ id: "shoe", name: "Buckled stilettos", category: "shoes", image_path: "items/shoe.jpg", primary_color: "black" },
+    { id: "top", name: "Lace bodysuit", category: "top", image_path: "items/top.jpg", pattern: "lace" },
+    { id: "jeans", name: "Wet-look leggings", category: "bottom", image_path: "items/jeans.jpg" });
+  c.body_photos = [{ id: "b1", label: "Front", image_path: "body/b1.jpg" }];
+  return c;
+}
+
+test("try-on: her photo first, pieces head to toe, Gemini key in header; returns the picture", async () => {
+  const log = [];
+  const h = makeHandler({ createClient: fakeSupabase(wardrobe()).client, fetchFn: gem([picture], log), env: env({ GEMINI_API_KEY: "\"gem-key\"" }), ai });
+  const r = await h(post({ action: "tryon", body_photo_id: "b1", item_ids: ["shoe", "jeans", "top", "shoe"] }));
+  assert.equal(r.status, 200);
+  const out = await r.json();
+  assert.deepEqual(out, { image: "UE5H", mime: "image/png", item_ids: ["top", "jeans", "shoe"] });
+  assert.match(log[0].url, /models\/gemini-3\.1-flash-image:generateContent$/);
+  assert.equal(log[0].headers["x-goog-api-key"], "gem-key", "quotes stripped");
+  const parts = log[0].body.contents[0].parts;
+  assert.equal(parts.length, 5);
+  assert.match(parts[0].text, /Image 2: top — Lace bodysuit, lace\nImage 3: bottom — Wet-look leggings\nImage 4: shoes — Buckled stilettos, main color black/);
+  assert.deepEqual(log[0].body.generationConfig, { responseModalities: ["IMAGE"], imageConfig: { aspectRatio: "3:4", imageSize: "1K" } });
+});
+
+test("try-on: friendly errors (no key, no billing, safety block, no body photo)", async () => {
+  const run = async (answers, body, over = { GEMINI_API_KEY: "k" }) => {
+    const h = makeHandler({ createClient: fakeSupabase(wardrobe()).client, fetchFn: gem(answers), env: env(over), ai });
+    const r = await h(post({ action: "tryon", body_photo_id: "b1", item_ids: ["top"], ...body }));
+    return [r.status, (await r.json()).error];
+  };
+  assert.match((await run([], {}, {}))[1], /GEMINI_API_KEY/);
+  assert.match((await run([{ status: 429, text: "Quota exceeded for metric generate_content_free_tier_requests, limit: 0" }], {}))[1], /billing/);
+  assert.match((await run([{ promptFeedback: { blockReason: "PROHIBITED_CONTENT" } }], {}))[1], /safety filter/);
+  assert.match((await run([{ candidates: [{ finishReason: "IMAGE_SAFETY", content: { parts: [] } }] }], {}))[1], /safety filter/);
+  assert.match((await run([], { body_photo_id: "nope" }))[1], /body photo/);
+  assert.match((await run([], { item_ids: [] }))[1], /at least one/);
+  const [st] = await run([{ status: 503 }, picture], {});
+  assert.equal(st, 200, "retries a busy service");
 });

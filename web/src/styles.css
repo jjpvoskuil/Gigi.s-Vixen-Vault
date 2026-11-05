@@ -289,3 +289,16 @@ body:has(.selbar) .toast { bottom: calc(var(--tabbar) + 90px); }
 .shotpick { display: flex; align-items: flex-end; gap: 10px; }
 .shotpick img { width: 96px; border-radius: 10px; border: 1px solid var(--line); }
 .pshot img { max-height: 60vh; object-fit: contain; }
+
+/* ---------------------------------------------------------------- try-on */
+.tostrip { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-bottom: 14px; }
+.tostrip .well { flex: none; width: 58px; border-radius: 12px; }
+.bodypick { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
+.bodypick button { flex: none; width: 92px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+.bodypick button.on .well { outline: 3px solid var(--accent); outline-offset: -3px; }
+.bodypick button.on span { color: var(--accent); font-weight: 600; }
+.tryhero { max-height: 62vh; }
+.tryhero img { object-fit: contain; background: var(--tile); }
+.pieces { margin: 0 0 8px; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+.selbar .btn.chrome { color: var(--text); }
+.look .btn.primary { position: relative; margin-top: 14px; }

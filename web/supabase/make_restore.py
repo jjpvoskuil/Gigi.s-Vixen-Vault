@@ -10,8 +10,9 @@ import json
 import sys
 from pathlib import Path
 
-ORDER = ["app_users", "styles", "profile", "items", "body_photos", "punchlist"]  # parents before children
+ORDER = ["app_users", "styles", "profile", "items", "body_photos", "tryons", "punchlist"]  # parents before children
 TEXT_ARRAYS = {"colors", "seasons", "styles", "my_styles"}  # text[] columns; dict/list elsewhere = jsonb
+UUID_ARRAYS = {"item_ids"}
 
 
 def lit(v, col):
@@ -21,6 +22,8 @@ def lit(v, col):
         return "true" if v else "false"
     if isinstance(v, (int, float)):
         return repr(v)
+    if col in UUID_ARRAYS and isinstance(v, list):
+        return "array[" + ",".join(lit(x, "") for x in v) + "]::uuid[]"
     if col in TEXT_ARRAYS and isinstance(v, list):
         return "array[" + ",".join(lit(x, "") for x in v) + "]::text[]"
     if isinstance(v, (dict, list)):

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "./Icon.jsx";
 import { Dial, Head, Sheet, Studs } from "./Shell.jsx";
+import { TryOnSheet } from "./TryOn.jsx";
 import { CATEGORIES, CATEGORY_LABEL, FORMALITY, SEASONS, SORTS, categoryCounts, filterSort, isUntagged } from "./lib/closet.js";
 
 const QUICK = [["fav", "Favorites"], ["leather", "Leather"], ["lace", "Lace"]];
@@ -15,6 +16,7 @@ export default function ClosetScreen({ db, items, styles, onSave, onDelete, onDe
   const [picking, setPicking] = useState(false); // select-several mode
   const [sel, setSel] = useState([]);
   const [sure, setSure] = useState(false);
+  const [trying, setTrying] = useState(false);
   const stopPicking = () => { setPicking(false); setSel([]); setSure(false); };
   const [urls, setUrls] = useState({});
 
@@ -115,12 +117,14 @@ export default function ClosetScreen({ db, items, styles, onSave, onDelete, onDe
       {picking && (
         <div className="selbar">
           <span>{sel.length ? `${sel.length} selected` : "Tap pieces to select"}</span>
+          {!sure && <button className="btn chrome" disabled={!sel.length || sel.length > 8} onClick={() => setTrying(true)}><Icon name="sparkle" size={18} />Try on</button>}
           {sure
             ? <button className="btn primary" onClick={async () => { if (await onDeleteMany(items.filter((i) => sel.includes(i.id)))) stopPicking(); }}>Yes, delete {sel.length}</button>
             : <button className="btn danger" disabled={!sel.length} onClick={() => setSure(true)}><Icon name="trash" size={18} />Delete</button>}
         </div>
       )}
 
+      {trying && <TryOnSheet db={db} pieces={items.filter((i) => sel.includes(i.id))} onClose={() => setTrying(false)} onSaved={() => stopPicking()} />}
       {showFilters && <FilterSheet styles={styles} value={filters} onChange={setFilters} onClose={() => setShowFilters(false)} />}
       {open && <ItemSheet db={db} item={open} styles={styles} onClose={() => setOpenId(null)} onSave={onSave} onDescribe={onDescribe}
         onDelete={async (it) => { if (await onDelete(it)) setOpenId(null); }} />}

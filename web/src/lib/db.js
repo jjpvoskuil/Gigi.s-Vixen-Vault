@@ -54,6 +54,22 @@ export function supabaseDb(sb, email) {
     describeItem: async (id) => (await callAi({ action: "describe", item_id: id })).item,
     /** Outfits from her closet: {outfits:[{title, items:[ids], why, tip, add_piece}], closet_gaps}. */
     suggestOutfits: (opts) => callAi({ action: "outfits", ...opts }),
+    /** Her body photo wearing these pieces (Gemini): {image (base64), mime, item_ids}. Not saved — see addTryon. */
+    tryOn: (bodyPhotoId, itemIds) => callAi({ action: "tryon", body_photo_id: bodyPhotoId, item_ids: itemIds }),
+    listTryons: async () => ok(await sb.from("tryons").select("*").order("created_at", { ascending: false })),
+    async addTryon({ full, thumb }, stem, meta) {
+      const paths = [`${stem}.jpg`, `${stem}_thumb.jpg`];
+      ok(await bucket().upload(paths[0], full, { contentType: "image/jpeg" }));
+      ok(await bucket().upload(paths[1], thumb, { contentType: "image/jpeg" }));
+      const row = { title: meta.title || "", style: meta.style || "", item_ids: meta.item_ids || [], body_photo_id: meta.body_photo_id || null,
+        image_path: paths[0], thumb_path: paths[1] };
+      try { return ok(await sb.from("tryons").insert(row).select("*").single()); }
+      catch (e) { await bucket().remove(paths); throw e; }
+    },
+    deleteTryon: async (t) => {
+      ok(await sb.from("tryons").delete().eq("id", t.id));
+      await bucket().remove([t.image_path, t.thumb_path].filter(Boolean));
+    },
 
     /** Punch list (vault-punch server function): list/add/edit/status/delete/shot. */
     punch: (action, body = {}) => callFn("vault-punch", { action, ...body }),
@@ -128,6 +144,20 @@ export function demoDb(seed) {
         description: "Demo description — the real app asks the AI." });
       save(); return clone(it);
     },
+    async tryOn(bodyPhotoId, itemIds) { // pretend: hands back the body photo itself
+      await new Promise((r) => setTimeout(r, 1200));
+      const p = st.body.find((b) => b.id === bodyPhotoId);
+      if (!p) throw new Error("Add a body photo first (Me → Body photos).");
+      const url = st.photos[p.image_path] || "";
+      return { image: url.split(",")[1] || "", mime: (url.match(/^data:([^;]+)/) || [])[1] || "image/jpeg", item_ids: itemIds };
+    },
+    listTryons: async () => clone(st.tryons || []),
+    async addTryon({ thumb }, stem, meta) {
+      const url = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(thumb); });
+      const t = { id: crypto.randomUUID(), created_at: nowIso(), ...meta, image_path: `${stem}.jpg`, thumb_path: `${stem}_thumb.jpg` };
+      st.photos[t.image_path] = st.photos[t.thumb_path] = url; (st.tryons ||= []).unshift(t); save(); return clone(t);
+    },
+    deleteTryon: async (t) => { st.tryons = (st.tryons || []).filter((x) => x.id !== t.id); save(); },
     async suggestOutfits({ count = 4 }) { // pretend AI
       await new Promise((r) => setTimeout(r, 900));
       const by = (c) => st.items.filter((i) => i.category === c);

@@ -34,6 +34,12 @@ create table if not exists public.styles (
   name text primary key, description text default '', custom boolean not null default false,
   sort_order integer not null default 100);
 
+create table if not exists public.tryons (
+  id uuid primary key default gen_random_uuid(), created_at timestamptz not null default now(),
+  title text not null default '', style text default '', item_ids uuid[] not null default '{}',
+  body_photo_id uuid references public.body_photos(id) on delete set null,
+  image_path text not null, thumb_path text);
+
 create table if not exists public.app_users (email text primary key, name text, role text not null default 'member');
 
 insert into storage.buckets (id, name, public) values ('vault', 'vault', false) on conflict (id) do nothing;
@@ -47,7 +53,7 @@ create or replace function public.is_admin() returns boolean language sql stable
 
 -- ---------------------------------------------------------------- lock every table, then open it to approved users
 do $$ declare t text; begin
-  foreach t in array array['items','profile','body_photos','styles','app_users'] loop
+  foreach t in array array['items','profile','body_photos','styles','tryons','app_users'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('revoke all on public.%I from anon, authenticated', t);
     execute format('grant select, insert, update, delete on public.%I to authenticated', t);
@@ -57,7 +63,7 @@ end $$;
 -- drop every existing policy on these tables, then create the current set
 do $$ declare p record; begin
   for p in select policyname, tablename from pg_policies where schemaname = 'public'
-    and tablename in ('items','profile','body_photos','styles','app_users') loop
+    and tablename in ('items','profile','body_photos','styles','tryons','app_users') loop
     execute format('drop policy %I on public.%I', p.policyname, p.tablename);
   end loop;
 end $$;
@@ -65,6 +71,7 @@ end $$;
 create policy "items approved"       on public.items       for all to authenticated using (public.is_approved()) with check (public.is_approved());
 create policy "profile approved"     on public.profile     for all to authenticated using (public.is_approved()) with check (public.is_approved());
 create policy "body photos approved" on public.body_photos for all to authenticated using (public.is_approved()) with check (public.is_approved());
+create policy "tryons approved"      on public.tryons      for all to authenticated using (public.is_approved()) with check (public.is_approved());
 create policy "styles approved"      on public.styles      for all to authenticated using (public.is_approved()) with check (public.is_approved());
 
 create policy "users read"  on public.app_users for select to authenticated using (email = public.me() or public.is_approved());

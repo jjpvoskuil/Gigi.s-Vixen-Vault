@@ -216,3 +216,50 @@ export function readOutfits(data, usable) {
   }
   return { outfits, closet_gaps: (data.closet_gaps || []).filter(Boolean).slice(0, 3) };
 }
+
+// ---------------------------------------------------------------- try-on (Gemini image model; no Python reference)
+export const TRYON_ORDER = ["outerwear", "dress", "jumpsuit", "top", "sweater", "bottom", "activewear", "swimwear",
+  "sleepwear", "shoes", "bag", "accessory", "jewelry", "other"];
+
+/** Pieces in head-to-toe-ish order so the prompt's numbering matches the images sent. */
+export function tryonOrder(items) {
+  const rank = (c) => { const n = TRYON_ORDER.indexOf(c); return n < 0 ? TRYON_ORDER.length : n; };
+  return [...items].sort((a, b) => rank(a.category) - rank(b.category));
+}
+
+export function tryonPrompt(items) {
+  const lines = items.map((it, n) => {
+    const bits = [it.name, it.primary_color && `main color ${it.primary_color}`, it.pattern && it.pattern !== "solid" && it.pattern,
+      it.material, it.fit].filter(Boolean);
+    return `Image ${n + 2}: ${it.category || "item"} — ${bits.join(", ")}`;
+  });
+  return `Virtual try-on. Image 1 is a full-length photo of a woman. The other images are pieces of clothing from her own closet:
+${lines.join("\n")}
+
+Create one photorealistic, full-length photo of the SAME woman from image 1 wearing ALL of these pieces together as one outfit.
+- Keep her exactly as she is: same face, hair, skin tone, body shape and proportions, same pose, same background and lighting.
+- Reproduce each piece faithfully: same color, pattern, fabric, length and cut. Dress her the way a real person would wear them (layering, tucking, shoes on her feet, bag held or on her shoulder).
+- Replace what she is wearing in image 1 with this outfit. Don't add clothing or accessories that aren't listed; where something isn't covered (e.g. no shoes listed), keep it simple and neutral.
+- Natural fit and drape for her body; no text, no borders, no collage — a single photo.`;
+}
+
+/** Gemini generateContent body: prompt, then her photo, then each piece (same order as the prompt). */
+export function tryonRequest(prompt, bodyImg, itemImgs, size = "1K") {
+  const img = (x) => ({ inlineData: { mimeType: x.mime || "image/jpeg", data: x.b64 } });
+  return {
+    contents: [{ role: "user", parts: [{ text: prompt }, img(bodyImg), ...itemImgs.map(img)] }],
+    generationConfig: { responseModalities: ["IMAGE"], imageConfig: { aspectRatio: "3:4", imageSize: size } },
+  };
+}
+
+/** {image, mime} from a Gemini response, or {blocked: reason} when it refused / returned no picture. */
+export function readImage(res) {
+  const fb = res?.promptFeedback?.blockReason;
+  if (fb) return { blocked: fb };
+  const cand = res?.candidates?.[0];
+  for (const p of cand?.content?.parts || []) {
+    const d = p.inlineData || p.inline_data;
+    if (!p.thought && d?.data && String(d.mimeType || d.mime_type || "").startsWith("image/")) return { image: d.data, mime: d.mimeType || d.mime_type };
+  }
+  return { blocked: cand?.finishReason || "NO_IMAGE" };
+}

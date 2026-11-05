@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Icon from "./Icon.jsx";
 import { Dial, Head, Sheet } from "./Shell.jsx";
 import { photoStem, preparePhoto } from "./lib/photo.js";
+import { LooksOnMe } from "./TryOn.jsx";
 
 const MEASUREMENTS = [
   ["bust", "Bust", "Fullest part, tape level across your back"],
@@ -18,9 +19,9 @@ const MEASUREMENTS = [
 ];
 const SIZES = [["tops", "Tops", "M or 8"], ["bottoms", "Pants / jeans", "8 or 29"], ["dresses", "Dresses", "8"], ["bra", "Bra", "34C"], ["shoes", "Shoes", "8.5"]];
 const VIEWS = ["Front", "Side", "Back", "Other"];
-const TABS = [["measure", "Measurements"], ["photos", "Body photos"], ["styles", "My styles"]];
+const TABS = [["measure", "Measurements"], ["photos", "Body photos"], ["looks", "Looks on me"], ["styles", "My styles"]];
 
-export default function MeScreen({ db, profile, styles, save }) {
+export default function MeScreen({ db, profile, styles, items, save }) {
   const [tab, setTab] = useState("measure");
   return (
     <div className="scroll">
@@ -31,6 +32,7 @@ export default function MeScreen({ db, profile, styles, save }) {
       </div>
       {tab === "measure" && <Measurements profile={profile} save={save} />}
       {tab === "photos" && <BodyPhotos db={db} save={save} />}
+      {tab === "looks" && <LooksOnMe db={db} items={items} save={save} />}
       {tab === "styles" && <Styles profile={profile} styles={styles} save={save} />}
     </div>
   );

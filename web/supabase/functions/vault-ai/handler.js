@@ -1,6 +1,8 @@
 // Supabase Edge Function "vault-ai": the only place the Anthropic key lives.
 //   POST {action:"describe", item_id}                       → AI-describes one closet photo and saves it
 //   POST {action:"outfits", style, style_desc, occasion, season, count} → outfits from her closet
+//   POST {action:"tryon", body_photo_id, item_ids}           → {image, mime}: her photo wearing those pieces
+//        (Google Gemini image model; key GEMINI_API_KEY, model GEMINI_IMAGE_MODEL — the app saves the result)
 // Runs as the signed-in person (their sign-in token), so the database's row-level security applies: only
 // approved people can read photos or change items. Logic lives in src/lib/ai.js (parity-tested vs Python).
 // build_functions.mjs inlines ai.js + this file into index.ts (one file you can paste into the dashboard).
@@ -76,6 +78,54 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
     return { item: saved };
   }
 
+  const gemModel = () => (env("GEMINI_IMAGE_MODEL") || "gemini-3.1-flash-image").trim();
+  const BLOCKED = "Google's safety filter wouldn't make this picture. Try a different body photo (fully dressed, plain background) or leave out the most revealing piece.";
+
+  async function gemini(req) {
+    const key = (env("GEMINI_API_KEY") || "").trim().replace(/^["']+|["']+$/g, "").trim();
+    if (!key) throw new Friendly("The try-on key isn't set — add GEMINI_API_KEY under Supabase → Edge Functions → Secrets.", 500);
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(gemModel())}:generateContent`;
+    for (let attempt = 0; ; attempt++) {
+      const r = await fetchFn(url, { method: "POST", headers: { "x-goog-api-key": key, "content-type": "application/json" }, body: JSON.stringify(req) });
+      if (r.ok) return await r.json();
+      const text = await r.text();
+      const low = text.toLowerCase();
+      const noBilling = low.includes("billing") || low.includes("free tier") || low.includes("limit: 0") || low.includes("free_tier");
+      if ((r.status === 503 || r.status === 500 || (r.status === 429 && !noBilling)) && attempt < 2) {
+        await new Promise((res) => setTimeout(res, 2000 * (attempt + 1)));
+        continue;
+      }
+      if (noBilling) throw new Friendly("Google says billing isn't on for the try-on key yet — in aistudio.google.com/apikey click “Set up billing” next to the key.");
+      if (r.status === 400 && low.includes("api key")) throw new Friendly("Google didn't accept the try-on key — check GEMINI_API_KEY in Supabase secrets.");
+      if (r.status === 403) throw new Friendly("Google refused the try-on key (403) — make sure it's from the Vixen Vault project and billing is on.");
+      if (r.status === 404) throw new Friendly(`Google doesn't recognize the image model (${gemModel()}) — set GEMINI_IMAGE_MODEL in Supabase secrets.`);
+      if (r.status === 429) throw new Friendly("The try-on service is busy — wait a minute and try again.", 503);
+      throw new Friendly(`Try-on error ${r.status}: ${text.slice(0, 200)}`);
+    }
+  }
+
+  async function photoB64(sb, path) {
+    const dl = await sb.storage.from("vault").download(path);
+    if (dl.error) throw new Friendly(`Couldn't open a photo: ${dl.error.message}`, 400);
+    const mime = /^image\/(jpeg|png|webp)$/.test(dl.data.type) ? dl.data.type : "image/jpeg";
+    return { b64: b64(new Uint8Array(await dl.data.arrayBuffer())), mime };
+  }
+
+  async function tryon(sb, body) {
+    const ids = [...new Set((body.item_ids || []).map(String))];
+    if (!ids.length) throw new Friendly("Pick at least one piece to try on.", 400);
+    if (ids.length > 8) throw new Friendly("That's a lot of pieces — try on 8 or fewer at a time.", 400);
+    const photo = ok(await sb.from("body_photos").select("*").eq("id", body.body_photo_id).maybeSingle());
+    if (!photo) throw new Friendly("Add a body photo first (Me → Body photos).", 400);
+    const found = ok(await sb.from("items").select("*").in("id", ids));
+    const items = ai.tryonOrder(found.filter((i) => i.image_path));
+    if (!items.length) throw new Friendly("Those pieces have no photos.", 400);
+    const [bodyImg, ...itemImgs] = await Promise.all([photoB64(sb, photo.image_path), ...items.map((i) => photoB64(sb, i.image_path))]);
+    const res = ai.readImage(await gemini(ai.tryonRequest(ai.tryonPrompt(items), bodyImg, itemImgs, body.size === "2K" ? "2K" : "1K")));
+    if (res.blocked) throw new Friendly(/safety|prohibited|blocklist|spii|other|image_/i.test(res.blocked) ? BLOCKED : "Google didn't return a picture this time — please try again.", 422);
+    return { image: res.image, mime: res.mime, item_ids: items.map((i) => i.id) };
+  }
+
   async function outfits(sb, body) {
     const [items, prof, styles] = await Promise.all([
       sb.from("items").select("*").order("created_at", { ascending: false }),
@@ -105,6 +155,7 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
       const body = await req.json().catch(() => ({}));
       if (body.action === "describe") return reply(200, await describe(sb, body));
       if (body.action === "outfits") return reply(200, await outfits(sb, body));
+      if (body.action === "tryon") return reply(200, await tryon(sb, body));
       return reply(400, { error: "Unknown action" });
     } catch (e) {
       return reply(e.status || 500, { error: e.message || String(e) });
