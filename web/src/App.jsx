@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase, configured } from "./supabase.js";
 import ClosetScreen from "./ClosetScreen.jsx";
 import AddScreen from "./AddScreen.jsx";
+import UnlockScreen from "./UnlockScreen.jsx";
 import { Dial, Soon, TabBar } from "./Shell.jsx";
 import Icon from "./Icon.jsx";
 import { demoSeed } from "./demo.js";
@@ -16,6 +17,8 @@ export default function App() {
   const [data, setData] = useState(null);             // {items, styles, profile}
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const [looks, setLooks] = useState(null);           // last outfit results (kept across tabs)
+  const [openItem, setOpenItem] = useState(null);     // closet item to open when jumping from a look
   const [tab, setTabState] = useState(() => { const h = location.hash.slice(1); return TAB_IDS.includes(h) ? h : "closet"; });
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 2600); return () => clearTimeout(t); }, [toast]);
   const go = (id) => { setTabState(id); history.replaceState(null, "", `#${id}`); };
@@ -71,13 +74,17 @@ export default function App() {
     <>
       {demo && <span className="demo">DEMO</span>}
       {tab === "closet" && (
-        <ClosetScreen db={db} items={data.items} styles={data.styles} onUnlock={() => go("unlock")}
+        <ClosetScreen db={db} openItem={openItem} clearOpenItem={() => setOpenItem(null)} items={data.items} styles={data.styles} onUnlock={() => go("unlock")}
           onSave={(id, fields, ok) => save((d) => d.saveItem(id, fields), ok)}
           onDelete={(item) => save((d) => d.deleteItem(item), "Deleted")}
           onDescribe={async (id) => { try { const it = await db.describeItem(id); await load(); setToast("Described"); return it; } catch (e) { setToast(e.message); return null; } }}
           onDescribeAll={() => go("add")} />
       )}
-      {tab === "unlock" && <Soon title="Unlock a look" what="Pick a mood and get outfits built from your closet." />}
+      {tab === "unlock" && (
+        <UnlockScreen db={db} items={data.items} styles={data.styles} profile={data.profile} result={looks} setResult={setLooks}
+          onAdd={() => go("add")} onCloset={(id) => { setOpenItem(id); go("closet"); }}
+          onWore={(pieces) => save(async (d) => { for (const p of pieces) await d.saveItem(p.id, { times_worn: (p.times_worn || 0) + 1 }); }, "Logged — enjoy!")} />
+      )}
       {tab === "add" && <AddScreen db={db} items={data.items} reload={load} onCloset={() => go("closet")} />}
       {tab === "me" && <Soon title="Me" what="Measurements, body photos and your styles." />}
       {tab === "more" && (

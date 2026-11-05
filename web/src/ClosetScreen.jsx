@@ -5,13 +5,14 @@ import { CATEGORIES, CATEGORY_LABEL, FORMALITY, SEASONS, SORTS, categoryCounts, 
 
 const QUICK = [["fav", "Favorites"], ["leather", "Leather"], ["lace", "Lace"]];
 
-export default function ClosetScreen({ db, items, styles, onSave, onDelete, onUnlock, onDescribe, onDescribeAll }) {
+export default function ClosetScreen({ db, items, styles, onSave, onDelete, onUnlock, onDescribe, onDescribeAll, openItem, clearOpenItem }) {
   const [tab, setTab] = useState("all");
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
   const [filters, setFilters] = useState({ styles: [], seasons: [], sort: "Newest" });
   const [showFilters, setShowFilters] = useState(false);
-  const [openId, setOpenId] = useState(null);
+  const [openId, setOpenId] = useState(openItem || null);
+  useEffect(() => { if (openItem) clearOpenItem(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [urls, setUrls] = useState({});
 
   const cats = useMemo(() => categoryCounts(items), [items]);

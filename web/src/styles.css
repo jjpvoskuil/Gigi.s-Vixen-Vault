@@ -194,3 +194,24 @@ textarea.in { resize: vertical; min-height: 70px; line-height: 1.4; }
 button.banner { width: calc(100% - 40px); text-align: left; }
 .banner b { font-weight: 600; text-decoration: underline; }
 .addbtns .btn, .actions .btn { white-space: nowrap; padding: 0 12px; gap: 8px; }
+
+/* ---------------------------------------------------------------- Unlock */
+.center { text-align: center; }
+.spin.light { border-color: rgba(255, 255, 255, .35); border-top-color: #fff; width: 18px; height: 18px; }
+.section { position: relative; margin: 26px 20px 0; font-family: var(--display); font-weight: 400; font-size: 32px; line-height: 1.05; }
+.look { position: relative; margin: 14px 20px 0; padding: 22px 16px 16px; border-radius: var(--r-card); background: var(--leather); color: var(--on-leather);
+  box-shadow: 0 18px 30px -18px rgba(20, 13, 15, .7); }
+.look::before { content: ""; position: absolute; inset: 7px; border-radius: 16px; border: 1.5px dashed var(--stitch); pointer-events: none; }
+.look h3 { position: relative; margin: 0 0 12px; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.05; }
+.lookstrip { position: relative; display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 0 4px 4px; }
+.lookstrip::-webkit-scrollbar { display: none; }
+.lookpiece { flex: none; width: 96px; display: flex; flex-direction: column; gap: 6px; text-align: left; color: var(--on-leather-muted); font-size: 12px; line-height: 1.2; }
+.lookpiece .well { border-radius: 14px; background: #2A2022; }
+.lookpiece span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.look .why { position: relative; margin: 12px 0 6px; font-size: 14px; line-height: 1.45; }
+.look .tip { position: relative; margin: 4px 0; font-size: 13px; color: var(--on-leather-muted); line-height: 1.4; }
+.look .tip b { color: var(--hot); font-weight: 600; text-transform: uppercase; letter-spacing: .12em; font-size: 11px; margin-right: 6px; }
+.look .btn { position: relative; margin-top: 12px; }
+.pill.gap { display: inline-flex; align-items: center; background: #F6E4E7; border-color: #EBC9CF; color: var(--accent-press); }
+.pill.more { border-style: dashed; color: var(--accent); }
+.section { scroll-margin-top: 16px; }

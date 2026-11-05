@@ -109,7 +109,18 @@ export function demoDb(seed) {
         description: "Demo description — the real app asks the AI." });
       save(); return clone(it);
     },
-    async suggestOutfits() { throw new Error("Outfits need the real app (not demo)."); },
+    async suggestOutfits({ count = 4 }) { // pretend AI
+      await new Promise((r) => setTimeout(r, 900));
+      const by = (c) => st.items.filter((i) => i.category === c);
+      const looks = [];
+      for (let n = 0; n < count; n++) {
+        const pick = (c) => by(c)[n % Math.max(1, by(c).length)];
+        const pieces = n % 2 ? [pick("dress"), pick("shoes")] : [pick("top"), pick("bottom"), pick("shoes"), pick("outerwear")];
+        looks.push({ title: `Demo look ${n + 1}`, items: pieces.filter(Boolean).map((i) => i.id), why: "Pretend reason — the real app asks the AI.",
+          tip: "Pretend tip: tuck the front.", add_piece: n === 0 ? "silver statement cuff" : "" });
+      }
+      return { outfits: looks, closet_gaps: ["black ankle-strap heels", "cropped leather jacket"] };
+    },
     getProfile: async () => clone(st.profile),
     saveProfile: async (fields) => { Object.assign(st.profile, fields); save(); },
     listStyles: async () => clone(st.styles),
