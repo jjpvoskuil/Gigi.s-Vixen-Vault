@@ -5,14 +5,17 @@ import { CATEGORIES, CATEGORY_LABEL, FORMALITY, SEASONS, SORTS, categoryCounts, 
 
 const QUICK = [["fav", "Favorites"], ["leather", "Leather"], ["lace", "Lace"]];
 
-export default function ClosetScreen({ db, items, styles, onSave, onDelete, onUnlock, onDescribe, onDescribeAll, openItem, clearOpenItem }) {
+export default function ClosetScreen({ db, items, styles, onSave, onDelete, onDeleteMany, onUnlock, onDescribe, onDescribeAll }) {
   const [tab, setTab] = useState("all");
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
   const [filters, setFilters] = useState({ styles: [], seasons: [], sort: "Newest" });
   const [showFilters, setShowFilters] = useState(false);
-  const [openId, setOpenId] = useState(openItem || null);
-  useEffect(() => { if (openItem) clearOpenItem(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [openId, setOpenId] = useState(null);
+  const [picking, setPicking] = useState(false); // select-several mode
+  const [sel, setSel] = useState([]);
+  const [sure, setSure] = useState(false);
+  const stopPicking = () => { setPicking(false); setSel([]); setSure(false); };
   const [urls, setUrls] = useState({});
 
   const cats = useMemo(() => categoryCounts(items), [items]);
@@ -78,17 +81,24 @@ export default function ClosetScreen({ db, items, styles, onSave, onDelete, onUn
       </div>
       <div className="countline">
         <span>{shown.length === items.length ? `${items.length} pieces` : `${shown.length} of ${items.length}`}{filters.sort !== "Newest" ? ` · ${filters.sort.toLowerCase()}` : ""}</span>
-        <button className="pill" style={{ minHeight: 34 }} onClick={() => setShowFilters(true)}>
-          <Icon name="sliders" size={16} /> Filter{filtered ? ` · ${filtered}` : ""}
-        </button>
+        <span className="pills">
+          <button className={`pill ${picking ? "on" : ""}`} style={{ minHeight: 34 }} onClick={() => (picking ? stopPicking() : setPicking(true))}>
+            {picking ? "Cancel" : "Select"}
+          </button>
+          <button className="pill" style={{ minHeight: 34 }} onClick={() => setShowFilters(true)}>
+            <Icon name="sliders" size={16} /> Filter{filtered ? ` · ${filtered}` : ""}
+          </button>
+        </span>
       </div>
 
       {shown.length === 0
         ? <p className="empty">Nothing in the vault matches that.</p>
         : <div className="grid">
             {shown.map((i) => (
-              <button key={i.id} className="piece" onClick={() => setOpenId(i.id)}>
+              <button key={i.id} className={`piece ${sel.includes(i.id) ? "picked" : ""}`} aria-pressed={picking ? sel.includes(i.id) : undefined}
+                onClick={() => (picking ? (setSure(false), setSel(toggle(sel, i.id))) : setOpenId(i.id))}>
                 <div className="well">
+                  {picking && <span className="tick" aria-hidden="true">{sel.includes(i.id) && <Icon name="check" size={16} />}</span>}
                   {urls[i.thumb_path] && <img src={urls[i.thumb_path]} alt="" loading="lazy" />}
                   {i.favorite && <span className="badge" aria-label="Favorite"><Icon name="heart" /></span>}
                   {isUntagged(i) && <span className="flag">Needs a description</span>}
@@ -100,6 +110,16 @@ export default function ClosetScreen({ db, items, styles, onSave, onDelete, onUn
               </button>
             ))}
           </div>}
+
+      {picking && <div style={{ height: 76 }} />}
+      {picking && (
+        <div className="selbar">
+          <span>{sel.length ? `${sel.length} selected` : "Tap pieces to select"}</span>
+          {sure
+            ? <button className="btn primary" onClick={async () => { if (await onDeleteMany(items.filter((i) => sel.includes(i.id)))) stopPicking(); }}>Yes, delete {sel.length}</button>
+            : <button className="btn danger" disabled={!sel.length} onClick={() => setSure(true)}><Icon name="trash" size={18} />Delete</button>}
+        </div>
+      )}
 
       {showFilters && <FilterSheet styles={styles} value={filters} onChange={setFilters} onClose={() => setShowFilters(false)} />}
       {open && <ItemSheet db={db} item={open} styles={styles} onClose={() => setOpenId(null)} onSave={onSave} onDescribe={onDescribe}
@@ -134,7 +154,7 @@ function FilterSheet({ styles, value, onChange, onClose }) {
 const EDIT_KEYS = ["name", "category", "subcategory", "primary_color", "colors", "pattern", "material", "fit", "formality",
   "seasons", "styles", "brand", "size", "description", "notes"];
 
-function ItemSheet({ db, item, styles, onClose, onSave, onDelete, onDescribe }) {
+export function ItemSheet({ db, item, styles, onClose, onSave, onDelete, onDescribe }) {
   const [f, setF] = useState(() => ({ ...item, colors: (item.colors || []).join(", ") }));
   const [hero, setHero] = useState("");
   const [confirm, setConfirm] = useState(false);
@@ -147,7 +167,17 @@ function ItemSheet({ db, item, styles, onClose, onSave, onDelete, onDescribe }) 
   const styleNames = styles.map((s) => s.name);
 
   return (
-    <Sheet title={item.name || "Item"} onClose={onClose}>
+    <Sheet title={item.name || "Item"} onClose={onClose}
+      tools={<button className="round" aria-label="Delete this piece" onClick={() => setConfirm(true)}><Icon name="trash" size={20} /></button>}>
+      {confirm && (
+        <div className="confirmbar">
+          <span>Delete this piece and its photo for good?</span>
+          <div className="actions">
+            <button className="btn" onClick={() => setConfirm(false)}>Keep it</button>
+            <button className="btn primary" onClick={() => onDelete(item)}>Yes, delete</button>
+          </div>
+        </div>
+      )}
       <div className="hero">{hero && <img src={hero} alt={item.name || "Closet item"} />}</div>
       <div className="actions" style={{ marginBottom: 18 }}>
         <button className={`btn ${item.favorite ? "primary" : ""}`} disabled={busy} onClick={() => quick({ favorite: !item.favorite }, item.favorite ? "Removed from favorites" : "Added to favorites")}>
@@ -202,9 +232,8 @@ function ItemSheet({ db, item, styles, onClose, onSave, onDelete, onDescribe }) 
           setBusy(true); const it = await onDescribe(item.id); setBusy(false);
           if (it) setF({ ...it, colors: (it.colors || []).join(", ") });
         }}><Icon name="sparkle" size={18} />{busy ? "Working…" : isUntagged(item) ? "Describe with AI" : "Re-describe"}</button>
-        {confirm
-          ? <button className="btn primary" onClick={() => onDelete(item)}>Yes, delete</button>
-          : <button className="btn danger" onClick={() => setConfirm(true)}><Icon name="trash" size={18} />Delete</button>}
+        <button className="btn danger" onClick={(e) => { setConfirm(true); e.currentTarget.closest(".sheet")?.scrollTo({ top: 0, behavior: "smooth" }); }}>
+          <Icon name="trash" size={18} />Delete</button>
       </div>
     </Sheet>
   );

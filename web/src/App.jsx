@@ -19,7 +19,6 @@ export default function App() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [looks, setLooks] = useState(null);           // last outfit results (kept across tabs)
-  const [openItem, setOpenItem] = useState(null);     // closet item to open when jumping from a look
   const [tab, setTabState] = useState(() => { const h = location.hash.slice(1); return TAB_IDS.includes(h) ? h : "closet"; });
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 2600); return () => clearTimeout(t); }, [toast]);
   const go = (id) => { setTabState(id); history.replaceState(null, "", `#${id}`); };
@@ -51,6 +50,14 @@ export default function App() {
     catch (e) { setToast(`Couldn't save — ${e.message}`); return false; }
   }, [db, load]);
 
+  // What the item sheet can do — shared by Closet and Unlock.
+  const itemActions = {
+    onSave: (id, fields, ok) => save((d) => d.saveItem(id, fields), ok),
+    onDelete: (item) => save((d) => d.deleteItem(item), "Deleted"),
+    onDeleteMany: (list) => save(async (d) => { for (const it of list) await d.deleteItem(it); }, `Deleted ${list.length} piece${list.length === 1 ? "" : "s"}`),
+    onDescribe: async (id) => { try { const it = await db.describeItem(id); await load(); setToast("Described"); return it; } catch (e) { setToast(e.message); return null; } },
+  };
+
   const signIn = () => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
   const signOut = () => { if (!demo) supabase.auth.signOut(); else location.reload(); };
 
@@ -75,15 +82,13 @@ export default function App() {
     <>
       {demo && <span className="demo">DEMO</span>}
       {tab === "closet" && (
-        <ClosetScreen db={db} openItem={openItem} clearOpenItem={() => setOpenItem(null)} items={data.items} styles={data.styles} onUnlock={() => go("unlock")}
-          onSave={(id, fields, ok) => save((d) => d.saveItem(id, fields), ok)}
-          onDelete={(item) => save((d) => d.deleteItem(item), "Deleted")}
-          onDescribe={async (id) => { try { const it = await db.describeItem(id); await load(); setToast("Described"); return it; } catch (e) { setToast(e.message); return null; } }}
+        <ClosetScreen db={db} items={data.items} styles={data.styles} onUnlock={() => go("unlock")}
+          {...itemActions}
           onDescribeAll={() => go("add")} />
       )}
       {tab === "unlock" && (
         <UnlockScreen db={db} items={data.items} styles={data.styles} profile={data.profile} result={looks} setResult={setLooks}
-          onAdd={() => go("add")} onCloset={(id) => { setOpenItem(id); go("closet"); }}
+          onAdd={() => go("add")} {...itemActions}
           onWore={(pieces) => save(async (d) => { for (const p of pieces) await d.saveItem(p.id, { times_worn: (p.times_worn || 0) + 1 }); }, "Logged — enjoy!")} />
       )}
       {tab === "add" && <AddScreen db={db} items={data.items} reload={load} onCloset={() => go("closet")} />}

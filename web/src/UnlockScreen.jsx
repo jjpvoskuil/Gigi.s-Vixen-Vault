@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import Icon from "./Icon.jsx";
 import { Dial, Head, Studs } from "./Shell.jsx";
 import { isUntagged } from "./lib/closet.js";
+import { ItemSheet } from "./ClosetScreen.jsx";
 
 const WEATHER = ["Spring", "Summer", "Fall", "Winter", "Chilly", "Hot"];
 const COUNTS = [2, 3, 4, 6];
 
-export default function UnlockScreen({ db, items, styles, profile, result, setResult, onWore, onCloset, onAdd }) {
+export default function UnlockScreen({ db, items, styles, profile, result, setResult, onWore, onAdd, onSave, onDelete, onDescribe }) {
   const mine = (profile.my_styles || []).filter((s) => styles.some((x) => x.name === s));
   const options = [...mine, ...styles.map((s) => s.name).filter((s) => !mine.includes(s))];
   const [style, setStyle] = useState(result?.style || options[0] || "");
@@ -20,6 +21,7 @@ export default function UnlockScreen({ db, items, styles, profile, result, setRe
   const [urls, setUrls] = useState({});
   const [worn, setWorn] = useState({});
   const [allStyles, setAllStyles] = useState(false);
+  const [openId, setOpenId] = useState(null);
   const top = useRef(null);
   const short = (mine.length ? mine : options.slice(0, 6));
   const shown = allStyles ? options : [...short, ...(short.includes(style) || !style ? [] : [style])];
@@ -99,7 +101,7 @@ export default function UnlockScreen({ db, items, styles, profile, result, setRe
               <h3>{o.title}</h3>
               <div className="lookstrip">
                 {o.pieces.map((p) => (
-                  <button key={p.id} className="lookpiece" onClick={() => onCloset(p.id)}>
+                  <button key={p.id} className="lookpiece" onClick={() => setOpenId(p.id)}>
                     <div className="well">{urls[p.thumb_path] && <img src={urls[p.thumb_path]} alt="" />}</div>
                     <span>{p.name}</span>
                   </button>
@@ -122,6 +124,8 @@ export default function UnlockScreen({ db, items, styles, profile, result, setRe
           )}
         </>
       )}
+      {byId[openId] && <ItemSheet db={db} item={byId[openId]} styles={styles} onClose={() => setOpenId(null)} onSave={onSave} onDescribe={onDescribe}
+        onDelete={async (it) => { if (await onDelete(it)) setOpenId(null); }} />}
     </div>
   );
 }

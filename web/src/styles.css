@@ -238,3 +238,17 @@ button.banner { width: calc(100% - 40px); text-align: left; }
 .well.tall { aspect-ratio: 3 / 4; border-radius: 14px; }
 .hero.tallhero { aspect-ratio: 3 / 4; }
 .scroll > .pad:last-child { padding-bottom: 24px; }
+
+/* ---------------------------------------------------------------- deleting */
+.piece.picked .well { outline: 3px solid var(--accent); outline-offset: -3px; }
+.tick { position: absolute; top: 10px; left: 10px; z-index: 2; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(255, 255, 255, .9); border: 2px solid var(--chrome-dark); color: #fff; }
+.piece.picked .tick { background: var(--accent); border-color: var(--accent); }
+.tick .icon { stroke-width: 3; }
+.selbar { position: fixed; left: 12px; right: 12px; bottom: calc(var(--tabbar) + 10px); z-index: 30; display: flex; align-items: center; gap: 10px;
+  padding: 10px 10px 10px 16px; border-radius: 18px; background: var(--leather); color: var(--on-leather); box-shadow: 0 14px 30px -12px rgba(20, 13, 15, .7); }
+.selbar span { flex: 1; font-size: 14px; }
+.selbar .btn { flex: none; min-height: 44px; }
+.confirmbar { margin-bottom: 14px; padding: 14px; border-radius: 16px; background: #F6E4E7; color: var(--accent-press); font-size: 14px; font-weight: 500; }
+.confirmbar .actions .btn { flex: 1; }
+body:has(.selbar) .toast { bottom: calc(var(--tabbar) + 90px); }

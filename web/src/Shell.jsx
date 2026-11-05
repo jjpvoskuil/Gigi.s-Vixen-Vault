@@ -1,5 +1,6 @@
 // Pieces every screen shares: the vault-dial backdrop, screen header, leather card, tab bar and sheets.
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import Icon from "./Icon.jsx";
 
 export const TABS = [["closet", "Closet", "hanger"], ["unlock", "Unlock", "unlock"], ["add", "Add", "plus"], ["me", "Me", "me"], ["more", "More", "more"]];
@@ -46,24 +47,27 @@ export function TabBar({ tab, onTab }) {
 }
 
 /** Bottom sheet: dims the screen, closes on the veil or Escape. */
-export function Sheet({ title, onClose, children, label }) {
+export function Sheet({ title, onClose, children, label, tools }) {
   useEffect(() => {
     const k = (e) => e.key === "Escape" && onClose();
     addEventListener("keydown", k);
     return () => removeEventListener("keydown", k);
   }, [onClose]);
-  return (
+  // Drawn at the top of the page (portal): on iPhone a scrolling area traps what's inside it under the tab bar.
+  return createPortal(
     <>
       <div className="veil" onClick={onClose} />
       <section className="sheet" role="dialog" aria-modal="true" aria-label={label || title}>
         <div className="grabber" />
         <div className="sheet-head">
           <h2>{title}</h2>
+          {tools}
           <button className="round" aria-label="Close" onClick={onClose}><Icon name="close" /></button>
         </div>
         {children}
       </section>
-    </>
+    </>,
+    document.body,
   );
 }
 
