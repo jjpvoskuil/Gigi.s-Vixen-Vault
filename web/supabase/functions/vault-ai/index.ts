@@ -253,7 +253,7 @@ function makeHandler({ createClient, fetchFn, env, ai }) {
   }
 
   async function claude(req) {
-    const key = (env("ANTHROPIC_API_KEY") || "").trim();
+    const key = (env("ANTHROPIC_API_KEY") || "").trim().replace(/^["']+|["']+$/g, "").trim(); // tolerate pasted quotes
     if (!key) throw new Friendly("The AI key isn't set — add ANTHROPIC_API_KEY under Supabase → Edge Functions → Secrets.", 500);
     for (let attempt = 0; ; attempt++) {
       const r = await fetchFn("https://api.anthropic.com/v1/messages", {

@@ -30,7 +30,7 @@ export function makePunchHandler({ createClient, fetchFn, env, punch, sleep = (m
   const api = (path) => `https://api.github.com/repos/${repo()}/${path}`;
 
   async function gh(path, opts = {}) {
-    const token = (env("GITHUB_TOKEN") || "").trim();
+    const token = (env("GITHUB_TOKEN") || "").trim().replace(/^["']+|["']+$/g, "").trim(); // tolerate pasted quotes
     if (!token) throw new Friendly("The punch list's GitHub key isn't set — add GITHUB_TOKEN under Supabase → Edge Functions → Secrets.", 500);
     const r = await fetchFn(api(path), {
       ...opts,
