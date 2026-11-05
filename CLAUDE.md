@@ -31,6 +31,8 @@ He prefers direct, accurate answers.
   `is_approved()` themselves.
   - `vault-ai` (describe a photo, outfits) — secrets `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` (claude-sonnet-5-5).
     Sonnet 5.5 rejects forced tool_choice: requests use strict tools + `tool_choice: auto` + "answer only by calling".
+    Also `tryon` → Google Gemini image model; secrets `GEMINI_API_KEY`, optional `GEMINI_IMAGE_MODEL`
+    (default gemini-3.1-flash-image). The app saves results to the `tryons` table (Me → Looks on me).
   - `vault-punch` — secret `GITHUB_TOKEN` (fine-grained, Contents read/write on this repo; it expires — the app then
     says GitHub didn't accept the key).
 - `web/src/lib/db.js`: one data API, two backends — Supabase, and `demoDb` (browser-only made-up data, `?demo`).
