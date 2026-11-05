@@ -46,3 +46,58 @@ for c in CASES:
 dest = ROOT / "web" / "src" / "lib" / "closet.fixtures.json"
 dest.write_text(json.dumps(out, indent=1) + "\n")
 print(f"wrote {dest} ({len(CASES)} cases)")
+
+# ---------------------------------------------------------------- AI rules (lib/ailogic.py → ai.fixtures.json)
+from lib import ailogic  # noqa: E402
+
+PROFILES = [
+    {},
+    {"measurements": {"height": 65.5, "bust": 36, "waist": 29.5, "high_hip": 37.25, "weight": 140, "thigh": 0},
+     "sizes": {"tops": "M", "bra": "34C"}, "my_styles": ["Edgy", "Date Night"], "fit_notes": "love my waist",
+     "color_notes": "jewel tones; no mustard"},
+    {"measurements": {"height": 60}, "sizes": {}, "my_styles": [], "fit_notes": "", "color_notes": ""},
+    {"measurements": {}, "sizes": {"shoes": "8.5"}, "my_styles": ["Boho"]},
+]
+STYLE_NAMES = ["Casual Chic", "Date Night", "Edgy"]
+usable = [i for i in ITEMS if not ailogic.is_untagged(i)]
+MERGE = [
+    ({"name": "New item", "description": "", "notes": ""}, {"name": "Black tee", "category": "top", "description": "Soft.", "brand": "Gap", "extra": 1}),
+    ({"name": "New Item", "description": "black top from Target", "brand": "Target", "notes": None}, {"name": "Black tee", "brand": "Gap", "size": "M", "description": "Soft."}),
+    ({"name": "My fav tee", "description": "New item", "notes": "runs small", "size": "S"}, {"name": "Tee", "size": "M", "description": "x"}),
+    ({"name": "", "description": "Soft", "notes": "Soft and comfy"}, {"name": "Cami", "description": "Silk cami."}),
+    ({"name": "  new item ", "description": "  ", "notes": "a\nb"}, {"name": "Skirt", "notes": "ignored?", "favorite": True}),
+]
+RAW_OUTFITS = [
+    {"outfits": [{"title": "Night Out", "items": [1, 2, 2, 99, 0, 3], "why": "w", "tip": "t", "add_piece": "boots"},
+                 {"title": "Empty", "items": [42], "why": "", "tip": ""},
+                 {"items": [4, 1.5, True], "why": "x", "tip": "y"}],
+     "closet_gaps": ["a", "", "b", "c", "d"]},
+    {"outfits": []}, {},
+]
+ai_out = {
+    "items": ITEMS,
+    "untagged": [i["id"] for i in ITEMS if ailogic.is_untagged(i)],
+    "catalog": ailogic.catalog(usable),
+    "profiles": [{"profile": p, "text": ailogic.profile_text(p)} for p in PROFILES],
+    "tag_requests": [{"styles": s, "request": ailogic.tag_request("IMGDATA", s, "model-x")} for s in (STYLE_NAMES, [])],
+    "outfit_requests": [
+        {"args": ["Edgy", "Leather & hardware", "date night", "fall", 4, 1],
+         "request": ailogic.outfit_request(usable, PROFILES[1], "Edgy", "Leather & hardware", "date night", "fall", 4, "model-x")},
+        {"args": ["Boho", "", "", "", 2, 0],
+         "request": ailogic.outfit_request(usable, PROFILES[0], "Boho", "", "", "", 2, "model-x")},
+    ],
+    "merge": [{"item": a, "fields": b, "row": ailogic.merge_describe(a, b)} for a, b in MERGE],
+    "read_outfits": [{"data": d, "result": {**(r := ailogic.read_outfits(d, usable)),
+                                            "outfits": [{**o, "items": [i["id"] for i in o["items"]]} for o in r["outfits"]]}}
+                     for d in RAW_OUTFITS],
+    "tool_answer": [
+        {"message": {"content": [{"type": "text", "text": "hi"}, {"type": "tool_use", "name": "record_item", "input": {"a": 1}}]}, "name": "record_item",
+         "result": ailogic.tool_answer({"content": [{"type": "text", "text": "hi"}, {"type": "tool_use", "name": "record_item", "input": {"a": 1}}]}, "record_item")},
+        {"message": {"content": [{"type": "text", "text": "prose"}]}, "name": "record_item", "result": None},
+    ],
+    "clean_tag": [{"in": {"category": "blouse"}, "out": ailogic.clean_tag({"category": "blouse"})},
+                  {"in": {"category": "dress"}, "out": ailogic.clean_tag({"category": "dress"})}],
+}
+dest = ROOT / "web" / "src" / "lib" / "ai.fixtures.json"
+dest.write_text(json.dumps(ai_out, indent=1, ensure_ascii=False) + "\n")
+print(f"wrote {dest}")

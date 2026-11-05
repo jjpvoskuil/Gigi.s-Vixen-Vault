@@ -1,0 +1,916 @@
+{
+ "items": [
+  {
+   "id": "a",
+   "name": "Navy striped tee",
+   "category": "top",
+   "subcategory": "t-shirt",
+   "primary_color": "Navy",
+   "colors": [
+    "navy",
+    "white"
+   ],
+   "styles": [
+    "Casual Chic"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "favorite": true,
+   "times_worn": 4,
+   "description": "Soft cotton tee.",
+   "material": "cotton",
+   "pattern": "striped"
+  },
+  {
+   "id": "b",
+   "name": "Light-wash jeans",
+   "category": "bottom",
+   "subcategory": "jeans",
+   "primary_color": "light blue",
+   "colors": [
+    "blue"
+   ],
+   "styles": [
+    "Casual Chic",
+    "Lake Life"
+   ],
+   "seasons": [
+    "spring",
+    "fall"
+   ],
+   "times_worn": 9,
+   "description": "High rise.",
+   "material": "denim"
+  },
+  {
+   "id": "c",
+   "name": "New item",
+   "category": "other",
+   "description": "",
+   "times_worn": 0
+  },
+  {
+   "id": "d",
+   "name": "Red slip dress",
+   "category": "dress",
+   "subcategory": "slip",
+   "primary_color": "red",
+   "colors": [
+    "red"
+   ],
+   "styles": [
+    "Date Night"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "favorite": true,
+   "times_worn": 2,
+   "description": "Satin, bias cut.",
+   "brand": "Reformation",
+   "notes": "needs a strapless bra"
+  },
+  {
+   "id": "e",
+   "name": "Black leather boots",
+   "category": "shoes",
+   "subcategory": "ankle boots",
+   "primary_color": "Black",
+   "colors": [
+    "black"
+   ],
+   "styles": [
+    "Edgy",
+    "Western / Country"
+   ],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "times_worn": 9,
+   "description": "Buckled.",
+   "material": "leather"
+  },
+  {
+   "id": "f",
+   "name": "Camel sweater",
+   "category": "sweater",
+   "subcategory": "",
+   "primary_color": "camel",
+   "colors": [
+    "camel"
+   ],
+   "styles": [],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "times_worn": null,
+   "description": "  "
+  },
+  {
+   "id": "g",
+   "name": "  NEW ITEM ",
+   "category": null,
+   "description": "her own words",
+   "times_worn": 1
+  },
+  {
+   "id": "h",
+   "name": "Plum cami",
+   "category": "top",
+   "subcategory": "cami",
+   "primary_color": "plum",
+   "colors": [
+    "plum"
+   ],
+   "styles": [
+    "Date Night"
+   ],
+   "seasons": [
+    "spring",
+    "summer"
+   ],
+   "times_worn": 4,
+   "description": "Lace trim.",
+   "pattern": "lace"
+  }
+ ],
+ "untagged": [
+  "c",
+  "f",
+  "g"
+ ],
+ "catalog": "1. {\"category\": \"top\", \"subcategory\": \"t-shirt\", \"name\": \"Navy striped tee\", \"primary_color\": \"Navy\", \"colors\": [\"navy\", \"white\"], \"pattern\": \"striped\", \"material\": \"cotton\", \"seasons\": [\"summer\"], \"styles\": [\"Casual Chic\"], \"favorite\": true, \"times_worn\": 4}\n2. {\"category\": \"bottom\", \"subcategory\": \"jeans\", \"name\": \"Light-wash jeans\", \"primary_color\": \"light blue\", \"colors\": [\"blue\"], \"material\": \"denim\", \"seasons\": [\"spring\", \"fall\"], \"styles\": [\"Casual Chic\", \"Lake Life\"], \"times_worn\": 9}\n3. {\"category\": \"dress\", \"subcategory\": \"slip\", \"name\": \"Red slip dress\", \"primary_color\": \"red\", \"colors\": [\"red\"], \"seasons\": [\"summer\"], \"styles\": [\"Date Night\"], \"notes\": \"needs a strapless bra\", \"favorite\": true, \"times_worn\": 2}\n4. {\"category\": \"shoes\", \"subcategory\": \"ankle boots\", \"name\": \"Black leather boots\", \"primary_color\": \"Black\", \"colors\": [\"black\"], \"material\": \"leather\", \"seasons\": [\"fall\", \"winter\"], \"styles\": [\"Edgy\", \"Western / Country\"], \"times_worn\": 9}\n5. {\"category\": \"top\", \"subcategory\": \"cami\", \"name\": \"Plum cami\", \"primary_color\": \"plum\", \"colors\": [\"plum\"], \"pattern\": \"lace\", \"seasons\": [\"spring\", \"summer\"], \"styles\": [\"Date Night\"], \"times_worn\": 4}",
+ "profiles": [
+  {
+   "profile": {},
+   "text": "(No profile details entered yet.)"
+  },
+  {
+   "profile": {
+    "measurements": {
+     "height": 65.5,
+     "bust": 36,
+     "waist": 29.5,
+     "high_hip": 37.25,
+     "weight": 140,
+     "thigh": 0
+    },
+    "sizes": {
+     "tops": "M",
+     "bra": "34C"
+    },
+    "my_styles": [
+     "Edgy",
+     "Date Night"
+    ],
+    "fit_notes": "love my waist",
+    "color_notes": "jewel tones; no mustard"
+   },
+   "text": "Measurements (inches): height 5'5.5\", bust 36\", waist 29.5\", high hip 37.25\"\nUsual sizes: tops M, bra 34C\nWhat she likes to show off / play down: love my waist\nColors she loves / avoids: jewel tones; no mustard\nHer favorite styles: Edgy, Date Night"
+  },
+  {
+   "profile": {
+    "measurements": {
+     "height": 60
+    },
+    "sizes": {},
+    "my_styles": [],
+    "fit_notes": "",
+    "color_notes": ""
+   },
+   "text": "Measurements (inches): height 5'0\""
+  },
+  {
+   "profile": {
+    "measurements": {},
+    "sizes": {
+     "shoes": "8.5"
+    },
+    "my_styles": [
+     "Boho"
+    ]
+   },
+   "text": "Usual sizes: shoes 8.5\nHer favorite styles: Boho"
+  }
+ ],
+ "tag_requests": [
+  {
+   "styles": [
+    "Casual Chic",
+    "Date Night",
+    "Edgy"
+   ],
+   "request": {
+    "model": "model-x",
+    "max_tokens": 1024,
+    "tools": [
+     {
+      "name": "record_item",
+      "description": "Record the catalog details for the single main clothing item in the photo.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "name": {
+         "type": "string",
+         "description": "Short catalog name, e.g. 'Light-wash high-rise skinny jeans'"
+        },
+        "category": {
+         "type": "string",
+         "enum": [
+          "top",
+          "bottom",
+          "dress",
+          "jumpsuit",
+          "outerwear",
+          "sweater",
+          "activewear",
+          "swimwear",
+          "shoes",
+          "bag",
+          "accessory",
+          "jewelry",
+          "sleepwear",
+          "other"
+         ]
+        },
+        "subcategory": {
+         "type": "string",
+         "description": "e.g. t-shirt, blouse, jeans, midi skirt, ankle boots"
+        },
+        "primary_color": {
+         "type": "string",
+         "description": "Plain color name, e.g. 'navy', 'cream', 'olive'"
+        },
+        "colors": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         },
+         "description": "All notable colors"
+        },
+        "pattern": {
+         "type": "string",
+         "description": "solid, striped, floral, plaid, animal print, etc."
+        },
+        "material": {
+         "type": "string",
+         "description": "Best guess: denim, cotton, knit, linen, leather..."
+        },
+        "fit": {
+         "type": "string",
+         "description": "e.g. fitted, relaxed, oversized, wide-leg, cropped"
+        },
+        "formality": {
+         "type": "string",
+         "enum": [
+          "very casual",
+          "casual",
+          "smart casual",
+          "business",
+          "dressy",
+          "formal"
+         ]
+        },
+        "seasons": {
+         "type": "array",
+         "items": {
+          "type": "string",
+          "enum": [
+           "spring",
+           "summer",
+           "fall",
+           "winter"
+          ]
+         }
+        },
+        "styles": {
+         "type": "array",
+         "items": {
+          "type": "string",
+          "enum": [
+           "Casual Chic",
+           "Date Night",
+           "Edgy"
+          ]
+         },
+         "description": "Which styles this piece suits (1-4)"
+        },
+        "description": {
+         "type": "string",
+         "description": "One or two sentences describing the piece and what it pairs well with"
+        },
+        "brand": {
+         "type": "string",
+         "description": "Only if a label/logo is clearly visible, else empty"
+        }
+       },
+       "required": [
+        "name",
+        "category",
+        "subcategory",
+        "primary_color",
+        "colors",
+        "pattern",
+        "material",
+        "fit",
+        "formality",
+        "seasons",
+        "styles",
+        "description",
+        "brand"
+       ],
+       "additionalProperties": false
+      },
+      "strict": true
+     }
+    ],
+    "tool_choice": {
+     "type": "auto"
+    },
+    "messages": [
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "image",
+        "source": {
+         "type": "base64",
+         "media_type": "image/jpeg",
+         "data": "IMGDATA"
+        }
+       },
+       {
+        "type": "text",
+        "text": "This is a photo of one item from a woman's closet, taken on her phone. Catalog the main garment or accessory in the photo. Ignore the background, hangers and anything else in frame. Use everyday color names a shopper would use. Use an empty string for anything you can't tell (e.g. brand)."
+       },
+       {
+        "type": "text",
+        "text": "Answer only by calling the record_item tool."
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "styles": [],
+   "request": {
+    "model": "model-x",
+    "max_tokens": 1024,
+    "tools": [
+     {
+      "name": "record_item",
+      "description": "Record the catalog details for the single main clothing item in the photo.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "name": {
+         "type": "string",
+         "description": "Short catalog name, e.g. 'Light-wash high-rise skinny jeans'"
+        },
+        "category": {
+         "type": "string",
+         "enum": [
+          "top",
+          "bottom",
+          "dress",
+          "jumpsuit",
+          "outerwear",
+          "sweater",
+          "activewear",
+          "swimwear",
+          "shoes",
+          "bag",
+          "accessory",
+          "jewelry",
+          "sleepwear",
+          "other"
+         ]
+        },
+        "subcategory": {
+         "type": "string",
+         "description": "e.g. t-shirt, blouse, jeans, midi skirt, ankle boots"
+        },
+        "primary_color": {
+         "type": "string",
+         "description": "Plain color name, e.g. 'navy', 'cream', 'olive'"
+        },
+        "colors": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         },
+         "description": "All notable colors"
+        },
+        "pattern": {
+         "type": "string",
+         "description": "solid, striped, floral, plaid, animal print, etc."
+        },
+        "material": {
+         "type": "string",
+         "description": "Best guess: denim, cotton, knit, linen, leather..."
+        },
+        "fit": {
+         "type": "string",
+         "description": "e.g. fitted, relaxed, oversized, wide-leg, cropped"
+        },
+        "formality": {
+         "type": "string",
+         "enum": [
+          "very casual",
+          "casual",
+          "smart casual",
+          "business",
+          "dressy",
+          "formal"
+         ]
+        },
+        "seasons": {
+         "type": "array",
+         "items": {
+          "type": "string",
+          "enum": [
+           "spring",
+           "summer",
+           "fall",
+           "winter"
+          ]
+         }
+        },
+        "styles": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         },
+         "description": "Which styles this piece suits (1-4)"
+        },
+        "description": {
+         "type": "string",
+         "description": "One or two sentences describing the piece and what it pairs well with"
+        },
+        "brand": {
+         "type": "string",
+         "description": "Only if a label/logo is clearly visible, else empty"
+        }
+       },
+       "required": [
+        "name",
+        "category",
+        "subcategory",
+        "primary_color",
+        "colors",
+        "pattern",
+        "material",
+        "fit",
+        "formality",
+        "seasons",
+        "styles",
+        "description",
+        "brand"
+       ],
+       "additionalProperties": false
+      },
+      "strict": true
+     }
+    ],
+    "tool_choice": {
+     "type": "auto"
+    },
+    "messages": [
+     {
+      "role": "user",
+      "content": [
+       {
+        "type": "image",
+        "source": {
+         "type": "base64",
+         "media_type": "image/jpeg",
+         "data": "IMGDATA"
+        }
+       },
+       {
+        "type": "text",
+        "text": "This is a photo of one item from a woman's closet, taken on her phone. Catalog the main garment or accessory in the photo. Ignore the background, hangers and anything else in frame. Use everyday color names a shopper would use. Use an empty string for anything you can't tell (e.g. brand)."
+       },
+       {
+        "type": "text",
+        "text": "Answer only by calling the record_item tool."
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "outfit_requests": [
+  {
+   "args": [
+    "Edgy",
+    "Leather & hardware",
+    "date night",
+    "fall",
+    4,
+    1
+   ],
+   "request": {
+    "model": "model-x",
+    "max_tokens": 3000,
+    "tools": [
+     {
+      "name": "propose_outfits",
+      "description": "Propose complete outfits built only from the numbered closet items.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "outfits": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "title": {
+            "type": "string",
+            "description": "Short, fun outfit name (2-5 words)"
+           },
+           "items": {
+            "type": "array",
+            "items": {
+             "type": "integer"
+            },
+            "description": "Closet item numbers in this outfit, head to toe"
+           },
+           "why": {
+            "type": "string",
+            "description": "1-2 sentences: why it suits the style and her figure/colouring"
+           },
+           "tip": {
+            "type": "string",
+            "description": "One styling tip (tuck, roll, layer, accessorize)"
+           },
+           "add_piece": {
+            "type": "string",
+            "description": "Optional: one piece she doesn't own that would elevate this look, with color — e.g. 'tan suede ankle boots'. Empty if nothing needed."
+           }
+          },
+          "required": [
+           "title",
+           "items",
+           "why",
+           "tip",
+           "add_piece"
+          ],
+          "additionalProperties": false
+         }
+        },
+        "closet_gaps": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         },
+         "description": "Up to 3 pieces (with colors) that would unlock more outfits in this style"
+        }
+       },
+       "required": [
+        "outfits",
+        "closet_gaps"
+       ],
+       "additionalProperties": false
+      },
+      "strict": true
+     }
+    ],
+    "tool_choice": {
+     "type": "auto"
+    },
+    "messages": [
+     {
+      "role": "user",
+      "content": "You are a warm, practical personal stylist helping a woman put together outfits from her own closet.\n\nABOUT HER\nMeasurements (inches): height 5'5.5\", bust 36\", waist 29.5\", high hip 37.25\"\nUsual sizes: tops M, bra 34C\nWhat she likes to show off / play down: love my waist\nColors she loves / avoids: jewel tones; no mustard\nHer favorite styles: Edgy, Date Night\n\nWHAT SHE WANTS\nStyle: Edgy — Leather & hardware\nOccasion / plans: date night\nSeason / weather: fall\n\nHER CLOSET (number. details)\n1. {\"category\": \"top\", \"subcategory\": \"t-shirt\", \"name\": \"Navy striped tee\", \"primary_color\": \"Navy\", \"colors\": [\"navy\", \"white\"], \"pattern\": \"striped\", \"material\": \"cotton\", \"seasons\": [\"summer\"], \"styles\": [\"Casual Chic\"], \"favorite\": true, \"times_worn\": 4}\n2. {\"category\": \"bottom\", \"subcategory\": \"jeans\", \"name\": \"Light-wash jeans\", \"primary_color\": \"light blue\", \"colors\": [\"blue\"], \"material\": \"denim\", \"seasons\": [\"spring\", \"fall\"], \"styles\": [\"Casual Chic\", \"Lake Life\"], \"times_worn\": 9}\n3. {\"category\": \"dress\", \"subcategory\": \"slip\", \"name\": \"Red slip dress\", \"primary_color\": \"red\", \"colors\": [\"red\"], \"seasons\": [\"summer\"], \"styles\": [\"Date Night\"], \"notes\": \"needs a strapless bra\", \"favorite\": true, \"times_worn\": 2}\n4. {\"category\": \"shoes\", \"subcategory\": \"ankle boots\", \"name\": \"Black leather boots\", \"primary_color\": \"Black\", \"colors\": [\"black\"], \"material\": \"leather\", \"seasons\": [\"fall\", \"winter\"], \"styles\": [\"Edgy\", \"Western / Country\"], \"times_worn\": 9}\n5. {\"category\": \"top\", \"subcategory\": \"cami\", \"name\": \"Plum cami\", \"primary_color\": \"plum\", \"colors\": [\"plum\"], \"pattern\": \"lace\", \"seasons\": [\"spring\", \"summer\"], \"styles\": [\"Date Night\"], \"times_worn\": 4}\n\nCreate 4 different outfits using ONLY item numbers from her closet.\nRules:\n- Each outfit is complete: either a dress/jumpsuit, or a top (or sweater) plus a bottom. Add shoes if she has suitable ones; add outerwear, a bag or accessories when they help.\n- Fit the requested style, occasion and season. Respect her color likes/dislikes and what she wants to show off or play down; use her measurements to favor flattering proportions.\n- Make the outfits genuinely different from each other. Favor favorites and pieces she hasn't worn much.\n- If her closet can't make 4 good outfits for this request, return fewer rather than forcing bad ones, and say what's missing in closet_gaps.\n\nAnswer only by calling the propose_outfits tool."
+     }
+    ]
+   }
+  },
+  {
+   "args": [
+    "Boho",
+    "",
+    "",
+    "",
+    2,
+    0
+   ],
+   "request": {
+    "model": "model-x",
+    "max_tokens": 3000,
+    "tools": [
+     {
+      "name": "propose_outfits",
+      "description": "Propose complete outfits built only from the numbered closet items.",
+      "input_schema": {
+       "type": "object",
+       "properties": {
+        "outfits": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "title": {
+            "type": "string",
+            "description": "Short, fun outfit name (2-5 words)"
+           },
+           "items": {
+            "type": "array",
+            "items": {
+             "type": "integer"
+            },
+            "description": "Closet item numbers in this outfit, head to toe"
+           },
+           "why": {
+            "type": "string",
+            "description": "1-2 sentences: why it suits the style and her figure/colouring"
+           },
+           "tip": {
+            "type": "string",
+            "description": "One styling tip (tuck, roll, layer, accessorize)"
+           },
+           "add_piece": {
+            "type": "string",
+            "description": "Optional: one piece she doesn't own that would elevate this look, with color — e.g. 'tan suede ankle boots'. Empty if nothing needed."
+           }
+          },
+          "required": [
+           "title",
+           "items",
+           "why",
+           "tip",
+           "add_piece"
+          ],
+          "additionalProperties": false
+         }
+        },
+        "closet_gaps": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         },
+         "description": "Up to 3 pieces (with colors) that would unlock more outfits in this style"
+        }
+       },
+       "required": [
+        "outfits",
+        "closet_gaps"
+       ],
+       "additionalProperties": false
+      },
+      "strict": true
+     }
+    ],
+    "tool_choice": {
+     "type": "auto"
+    },
+    "messages": [
+     {
+      "role": "user",
+      "content": "You are a warm, practical personal stylist helping a woman put together outfits from her own closet.\n\nABOUT HER\n(No profile details entered yet.)\n\nWHAT SHE WANTS\nStyle: Boho\nOccasion / plans: everyday\nSeason / weather: any\n\nHER CLOSET (number. details)\n1. {\"category\": \"top\", \"subcategory\": \"t-shirt\", \"name\": \"Navy striped tee\", \"primary_color\": \"Navy\", \"colors\": [\"navy\", \"white\"], \"pattern\": \"striped\", \"material\": \"cotton\", \"seasons\": [\"summer\"], \"styles\": [\"Casual Chic\"], \"favorite\": true, \"times_worn\": 4}\n2. {\"category\": \"bottom\", \"subcategory\": \"jeans\", \"name\": \"Light-wash jeans\", \"primary_color\": \"light blue\", \"colors\": [\"blue\"], \"material\": \"denim\", \"seasons\": [\"spring\", \"fall\"], \"styles\": [\"Casual Chic\", \"Lake Life\"], \"times_worn\": 9}\n3. {\"category\": \"dress\", \"subcategory\": \"slip\", \"name\": \"Red slip dress\", \"primary_color\": \"red\", \"colors\": [\"red\"], \"seasons\": [\"summer\"], \"styles\": [\"Date Night\"], \"notes\": \"needs a strapless bra\", \"favorite\": true, \"times_worn\": 2}\n4. {\"category\": \"shoes\", \"subcategory\": \"ankle boots\", \"name\": \"Black leather boots\", \"primary_color\": \"Black\", \"colors\": [\"black\"], \"material\": \"leather\", \"seasons\": [\"fall\", \"winter\"], \"styles\": [\"Edgy\", \"Western / Country\"], \"times_worn\": 9}\n5. {\"category\": \"top\", \"subcategory\": \"cami\", \"name\": \"Plum cami\", \"primary_color\": \"plum\", \"colors\": [\"plum\"], \"pattern\": \"lace\", \"seasons\": [\"spring\", \"summer\"], \"styles\": [\"Date Night\"], \"times_worn\": 4}\n\nCreate 2 different outfits using ONLY item numbers from her closet.\nRules:\n- Each outfit is complete: either a dress/jumpsuit, or a top (or sweater) plus a bottom. Add shoes if she has suitable ones; add outerwear, a bag or accessories when they help.\n- Fit the requested style, occasion and season. Respect her color likes/dislikes and what she wants to show off or play down; use her measurements to favor flattering proportions.\n- Make the outfits genuinely different from each other. Favor favorites and pieces she hasn't worn much.\n- If her closet can't make 2 good outfits for this request, return fewer rather than forcing bad ones, and say what's missing in closet_gaps.\n\nAnswer only by calling the propose_outfits tool."
+     }
+    ]
+   }
+  }
+ ],
+ "merge": [
+  {
+   "item": {
+    "name": "New item",
+    "description": "",
+    "notes": ""
+   },
+   "fields": {
+    "name": "Black tee",
+    "category": "top",
+    "description": "Soft.",
+    "brand": "Gap",
+    "extra": 1
+   },
+   "row": {
+    "name": "Black tee",
+    "category": "top",
+    "description": "Soft.",
+    "brand": "Gap"
+   }
+  },
+  {
+   "item": {
+    "name": "New Item",
+    "description": "black top from Target",
+    "brand": "Target",
+    "notes": null
+   },
+   "fields": {
+    "name": "Black tee",
+    "brand": "Gap",
+    "size": "M",
+    "description": "Soft."
+   },
+   "row": {
+    "name": "Black tee",
+    "size": "M",
+    "description": "Soft.",
+    "notes": "black top from Target"
+   }
+  },
+  {
+   "item": {
+    "name": "My fav tee",
+    "description": "New item",
+    "notes": "runs small",
+    "size": "S"
+   },
+   "fields": {
+    "name": "Tee",
+    "size": "M",
+    "description": "x"
+   },
+   "row": {
+    "description": "x"
+   }
+  },
+  {
+   "item": {
+    "name": "",
+    "description": "Soft",
+    "notes": "Soft and comfy"
+   },
+   "fields": {
+    "name": "Cami",
+    "description": "Silk cami."
+   },
+   "row": {
+    "name": "Cami",
+    "description": "Silk cami."
+   }
+  },
+  {
+   "item": {
+    "name": "  new item ",
+    "description": "  ",
+    "notes": "a\nb"
+   },
+   "fields": {
+    "name": "Skirt",
+    "notes": "ignored?",
+    "favorite": true
+   },
+   "row": {
+    "name": "Skirt",
+    "notes": "ignored?",
+    "favorite": true
+   }
+  }
+ ],
+ "read_outfits": [
+  {
+   "data": {
+    "outfits": [
+     {
+      "title": "Night Out",
+      "items": [
+       1,
+       2,
+       2,
+       99,
+       0,
+       3
+      ],
+      "why": "w",
+      "tip": "t",
+      "add_piece": "boots"
+     },
+     {
+      "title": "Empty",
+      "items": [
+       42
+      ],
+      "why": "",
+      "tip": ""
+     },
+     {
+      "items": [
+       4,
+       1.5,
+       true
+      ],
+      "why": "x",
+      "tip": "y"
+     }
+    ],
+    "closet_gaps": [
+     "a",
+     "",
+     "b",
+     "c",
+     "d"
+    ]
+   },
+   "result": {
+    "outfits": [
+     {
+      "title": "Night Out",
+      "items": [
+       "a",
+       "b",
+       "d"
+      ],
+      "why": "w",
+      "tip": "t",
+      "add_piece": "boots"
+     },
+     {
+      "title": "Outfit",
+      "items": [
+       "e"
+      ],
+      "why": "x",
+      "tip": "y",
+      "add_piece": ""
+     }
+    ],
+    "closet_gaps": [
+     "a",
+     "b",
+     "c"
+    ]
+   }
+  },
+  {
+   "data": {
+    "outfits": []
+   },
+   "result": {
+    "outfits": [],
+    "closet_gaps": []
+   }
+  },
+  {
+   "data": {},
+   "result": {
+    "outfits": [],
+    "closet_gaps": []
+   }
+  }
+ ],
+ "tool_answer": [
+  {
+   "message": {
+    "content": [
+     {
+      "type": "text",
+      "text": "hi"
+     },
+     {
+      "type": "tool_use",
+      "name": "record_item",
+      "input": {
+       "a": 1
+      }
+     }
+    ]
+   },
+   "name": "record_item",
+   "result": {
+    "a": 1
+   }
+  },
+  {
+   "message": {
+    "content": [
+     {
+      "type": "text",
+      "text": "prose"
+     }
+    ]
+   },
+   "name": "record_item",
+   "result": null
+  }
+ ],
+ "clean_tag": [
+  {
+   "in": {
+    "category": "blouse"
+   },
+   "out": {
+    "category": "other"
+   }
+  },
+  {
+   "in": {
+    "category": "dress"
+   },
+   "out": {
+    "category": "dress"
+   }
+  }
+ ]
+}
