@@ -1,0 +1,364 @@
+{
+ "items": [
+  {
+   "id": "a",
+   "name": "Navy striped tee",
+   "category": "top",
+   "subcategory": "t-shirt",
+   "primary_color": "Navy",
+   "colors": [
+    "navy",
+    "white"
+   ],
+   "styles": [
+    "Casual Chic"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "favorite": true,
+   "times_worn": 4,
+   "description": "Soft cotton tee.",
+   "material": "cotton",
+   "pattern": "striped"
+  },
+  {
+   "id": "b",
+   "name": "Light-wash jeans",
+   "category": "bottom",
+   "subcategory": "jeans",
+   "primary_color": "light blue",
+   "colors": [
+    "blue"
+   ],
+   "styles": [
+    "Casual Chic",
+    "Lake Life"
+   ],
+   "seasons": [
+    "spring",
+    "fall"
+   ],
+   "times_worn": 9,
+   "description": "High rise.",
+   "material": "denim"
+  },
+  {
+   "id": "c",
+   "name": "New item",
+   "category": "other",
+   "description": "",
+   "times_worn": 0
+  },
+  {
+   "id": "d",
+   "name": "Red slip dress",
+   "category": "dress",
+   "subcategory": "slip",
+   "primary_color": "red",
+   "colors": [
+    "red"
+   ],
+   "styles": [
+    "Date Night"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "favorite": true,
+   "times_worn": 2,
+   "description": "Satin, bias cut.",
+   "brand": "Reformation",
+   "notes": "needs a strapless bra"
+  },
+  {
+   "id": "e",
+   "name": "Black leather boots",
+   "category": "shoes",
+   "subcategory": "ankle boots",
+   "primary_color": "Black",
+   "colors": [
+    "black"
+   ],
+   "styles": [
+    "Edgy",
+    "Western / Country"
+   ],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "times_worn": 9,
+   "description": "Buckled.",
+   "material": "leather"
+  },
+  {
+   "id": "f",
+   "name": "Camel sweater",
+   "category": "sweater",
+   "subcategory": "",
+   "primary_color": "camel",
+   "colors": [
+    "camel"
+   ],
+   "styles": [],
+   "seasons": [
+    "fall",
+    "winter"
+   ],
+   "times_worn": null,
+   "description": "  "
+  },
+  {
+   "id": "g",
+   "name": "  NEW ITEM ",
+   "category": null,
+   "description": "her own words",
+   "times_worn": 1
+  },
+  {
+   "id": "h",
+   "name": "Plum cami",
+   "category": "top",
+   "subcategory": "cami",
+   "primary_color": "plum",
+   "colors": [
+    "plum"
+   ],
+   "styles": [
+    "Date Night"
+   ],
+   "seasons": [
+    "spring",
+    "summer"
+   ],
+   "times_worn": 4,
+   "description": "Lace trim.",
+   "pattern": "lace"
+  }
+ ],
+ "untagged": [
+  "c",
+  "f",
+  "g"
+ ],
+ "cases": [
+  {
+   "args": {},
+   "ids": [
+    "a",
+    "b",
+    "c",
+    "d",
+    "e",
+    "f",
+    "g",
+    "h"
+   ]
+  },
+  {
+   "args": {
+    "q": "navy"
+   },
+   "ids": [
+    "a"
+   ]
+  },
+  {
+   "args": {
+    "q": "LEATHER black"
+   },
+   "ids": [
+    "e"
+   ]
+  },
+  {
+   "args": {
+    "q": "date night"
+   },
+   "ids": [
+    "d",
+    "h"
+   ]
+  },
+  {
+   "args": {
+    "q": "strapless"
+   },
+   "ids": [
+    "d"
+   ]
+  },
+  {
+   "args": {
+    "q": "nothing-here"
+   },
+   "ids": []
+  },
+  {
+   "args": {
+    "cats": [
+     "top"
+    ]
+   },
+   "ids": [
+    "a",
+    "h"
+   ]
+  },
+  {
+   "args": {
+    "cats": [
+     "other"
+    ]
+   },
+   "ids": [
+    "c",
+    "g"
+   ]
+  },
+  {
+   "args": {
+    "cats": [
+     "top",
+     "dress"
+    ],
+    "fav": true
+   },
+   "ids": [
+    "a",
+    "d"
+   ]
+  },
+  {
+   "args": {
+    "styles": [
+     "Date Night"
+    ]
+   },
+   "ids": [
+    "d",
+    "h"
+   ]
+  },
+  {
+   "args": {
+    "seasons": [
+     "winter"
+    ]
+   },
+   "ids": [
+    "e",
+    "f"
+   ]
+  },
+  {
+   "args": {
+    "seasons": [
+     "summer"
+    ],
+    "q": "  red  "
+   },
+   "ids": [
+    "d"
+   ]
+  },
+  {
+   "args": {
+    "fav": true
+   },
+   "ids": [
+    "a",
+    "d"
+   ]
+  },
+  {
+   "args": {
+    "sort": "Category"
+   },
+   "ids": [
+    "g",
+    "b",
+    "d",
+    "c",
+    "e",
+    "f",
+    "h",
+    "a"
+   ]
+  },
+  {
+   "args": {
+    "sort": "Color"
+   },
+   "ids": [
+    "c",
+    "g",
+    "e",
+    "f",
+    "b",
+    "a",
+    "h",
+    "d"
+   ]
+  },
+  {
+   "args": {
+    "sort": "Most worn"
+   },
+   "ids": [
+    "b",
+    "e",
+    "a",
+    "h",
+    "d",
+    "g",
+    "c",
+    "f"
+   ]
+  },
+  {
+   "args": {
+    "sort": "Least worn"
+   },
+   "ids": [
+    "c",
+    "f",
+    "g",
+    "d",
+    "a",
+    "h",
+    "b",
+    "e"
+   ]
+  },
+  {
+   "args": {
+    "cats": [
+     "top"
+    ],
+    "sort": "Most worn"
+   },
+   "ids": [
+    "a",
+    "h"
+   ]
+  },
+  {
+   "args": {
+    "q": "e",
+    "sort": "Color"
+   },
+   "ids": [
+    "c",
+    "g",
+    "e",
+    "f",
+    "b",
+    "a",
+    "h",
+    "d"
+   ]
+  }
+ ]
+}

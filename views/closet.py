@@ -1,6 +1,6 @@
 import streamlit as st
 
-from lib import ai, config, db, retag, ui
+from lib import ai, closetlogic, config, db, retag, ui
 
 st.title("My closet")
 
@@ -137,36 +137,10 @@ with st.expander("More filters"):
     f_styles = st.multiselect("Style", style_names)
     f_seasons = st.multiselect("Season", ai.SEASONS)
     f_fav = st.toggle("Favorites only")
-    sort = st.radio("Sort", ["Newest", "Category", "Color", "Most worn", "Least worn"], horizontal=True)
+    sort = st.radio("Sort", closetlogic.SORTS, horizontal=True)
 
 
-def matches(i):
-    if cats and (i.get("category") or "other") not in cats:
-        return False
-    if f_fav and not i.get("favorite"):
-        return False
-    if f_styles and not set(f_styles) & set(i.get("styles") or []):
-        return False
-    if f_seasons and not set(f_seasons) & set(i.get("seasons") or []):
-        return False
-    if q:
-        hay = " ".join(str(i.get(k) or "") for k in
-                       ["name", "category", "subcategory", "primary_color", "pattern", "material",
-                        "fit", "description", "brand", "notes"])
-        hay += " " + " ".join((i.get("colors") or []) + (i.get("styles") or []))
-        return all(word in hay.lower() for word in q.lower().split())
-    return True
-
-
-shown = [i for i in items if matches(i)]
-if sort == "Category":
-    shown.sort(key=lambda i: (i.get("category") or "", i.get("subcategory") or ""))
-elif sort == "Color":
-    shown.sort(key=lambda i: (i.get("primary_color") or "").lower())
-elif sort == "Most worn":
-    shown.sort(key=lambda i: -(i.get("times_worn") or 0))
-elif sort == "Least worn":
-    shown.sort(key=lambda i: i.get("times_worn") or 0)
+shown = closetlogic.filter_sort(items, q, cats, f_styles, f_seasons, f_fav, sort)
 
 st.caption(f"{len(shown)} of {len(items)} pieces")
 
