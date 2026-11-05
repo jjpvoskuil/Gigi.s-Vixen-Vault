@@ -6,13 +6,13 @@ export const TABS = [["closet", "Closet", "hanger"], ["unlock", "Unlock", "unloc
 
 export function Dial() {
   return (
-    <svg className="dial" viewBox="0 0 420 420" aria-hidden="true">
+    <div className="dialbox" aria-hidden="true"><svg className="dial" viewBox="0 0 420 420">
       <defs><linearGradient id="chrome" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#F4F5F7" /><stop offset=".45" stopColor="#A9AEB5" /><stop offset=".55" stopColor="#E3E6EA" /><stop offset="1" stopColor="#7E848C" /></linearGradient></defs>
       <circle cx="210" cy="210" r="200" fill="none" stroke="url(#chrome)" strokeWidth="3" />
       <circle cx="210" cy="210" r="160" fill="none" stroke="#CFC8C6" strokeWidth="10" strokeDasharray="2 14" />
       <circle cx="210" cy="210" r="118" fill="#E2DCDA" />
       <circle cx="210" cy="210" r="60" fill="none" stroke="url(#chrome)" strokeWidth="8" />
-    </svg>
+    </svg></div>
   );
 }
 
