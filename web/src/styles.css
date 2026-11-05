@@ -32,7 +32,7 @@
   -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;
 }
 * { box-sizing: border-box; }
-html, body, #root { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: var(--page); }
+html, body, #root { margin: 0; height: 100%; overflow: hidden; max-width: 100vw; overscroll-behavior: none; background: var(--page); }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { background: none; border: 0; padding: 0; cursor: pointer; }
 .muted { color: var(--muted); }
@@ -42,7 +42,7 @@ button { background: none; border: 0; padding: 0; cursor: pointer; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ------------------------------------------------------------ app frame */
-.scroll { position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+.scroll { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-x: none; touch-action: pan-y; -webkit-overflow-scrolling: touch;
   padding-bottom: calc(var(--tabbar) + 28px); }
 .dial { position: absolute; right: -170px; top: calc(-150px + var(--safe-top)); width: 420px; height: 420px; pointer-events: none; }
 .head { position: relative; padding: calc(var(--safe-top) + 22px) 20px 0; display: flex; align-items: flex-end; gap: 12px; }
