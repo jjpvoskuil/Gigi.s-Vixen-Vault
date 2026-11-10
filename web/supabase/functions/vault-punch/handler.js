@@ -1,6 +1,7 @@
 // Supabase Edge Function "vault-punch": the Punch List. The GitHub key lives only here (secret GITHUB_TOKEN).
-// Reads/writes punch_list.json on the repo's punch-list branch — the same file the Streamlit app used and that
-// Claude reads at the start of each session. Only approved people (app_users) can use it.
+// Reads/writes punch_list.json on the punch-list branch of the PRIVATE repo jjpvoskuil/vixen-vault-data (moved there
+// 2026-11-10 when the app repo went public: screenshots can show her photos). Claude reads it at the start of each
+// session. Only approved people (app_users) can use it. GITHUB_REPO / GITHUB_BRANCH secrets override the defaults.
 //   POST {action:"list"}                                   → {items}
 //   POST {action:"add", fields, shot?}                     → {item}      (shot = base64 JPEG)
 //   POST {action:"edit", id, fields?, comment?, shot?}     → {item}
@@ -25,7 +26,7 @@ export function makePunchHandler({ createClient, fetchFn, env, punch, sleep = (m
   class Conflict extends Error {}
 
   const FILE = "punch_list.json";
-  const repo = () => (env("GITHUB_REPO") || "jjpvoskuil/Gigi.s-Vixen-Vault").trim();
+  const repo = () => (env("GITHUB_REPO") || "jjpvoskuil/vixen-vault-data").trim();
   const branch = () => (env("GITHUB_BRANCH") || "punch-list").trim();
   const api = (path) => `https://api.github.com/repos/${repo()}/${path}`;
 
@@ -37,9 +38,10 @@ export function makePunchHandler({ createClient, fetchFn, env, punch, sleep = (m
       headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28",
         "User-Agent": "vixen-vault", ...(opts.body ? { "Content-Type": "application/json" } : {}), ...(opts.headers || {}) },
     });
+    if (r.status === 404 && path.startsWith("git/ref/heads/main")) throw new Friendly(`GitHub can't see ${repo()} with this key — add that repo to the key's repository access.`);
     if (r.status === 401) throw new Friendly("GitHub didn't accept the punch list key — make a new one and replace GITHUB_TOKEN in Supabase secrets.");
     if (r.status === 403 && !(await r.clone().text()).toLowerCase().includes("rate limit")) {
-      throw new Friendly("The GitHub key can't write to the repo — it needs Contents: Read and write for Gigi.s-Vixen-Vault.");
+      throw new Friendly(`The GitHub key can't write to ${repo()} — give it Contents: Read and write on that repo.`);
     }
     return r;
   }

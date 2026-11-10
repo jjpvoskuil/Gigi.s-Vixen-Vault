@@ -3,7 +3,7 @@
 A private, phone-first web app for Gigi's closet: photograph clothes, let AI describe them, keep her
 measurements, body photos and favorite styles, and get outfit picks built from what she owns.
 
-**Live:** https://vixen-vault.netlify.app (Google sign-in; only emails on the `app_users` list get in).
+**Live:** https://jjpvoskuil.github.io/Gigi.s-Vixen-Vault/ (Google sign-in; only emails on the `app_users` list get in).
 
 ## Screens
 - **Closet** — photo grid by category, search, filters and sorting; tap a piece to edit it, favorite it, log a wear,
@@ -18,10 +18,10 @@ measurements, body photos and favorite styles, and get outfit picks built from w
 ## How it's built
 | Piece | Where |
 |---|---|
-| Web app (React + Vite) | `web/` → Netlify builds and deploys every push to `main` (`netlify.toml`) |
+| Web app (React + Vite) | `web/` → GitHub Pages, built by `.github/workflows/pages.yml` on every push to `main` |
 | Data, photos, sign-in | Supabase: tables + row-level security (`web/supabase/schema.sql`), private `vault` bucket, Google sign-in |
 | AI (photo descriptions, outfits) | Supabase Edge Function `vault-ai` — the Anthropic key lives only there |
-| Punch list | Edge Function `vault-punch` → `punch_list.json` on the repo's `punch-list` branch (GitHub key lives only there) |
+| Punch list | Edge Function `vault-punch` → `punch_list.json` on the `punch-list` branch of the private `vixen-vault-data` repo |
 | Backups | Private repo `jjpvoskuil/vixen-vault-data` — GitHub Actions copy tables + new photos Mon & Thu |
 
 Secrets are never in this repo. Supabase → Edge Functions → Secrets holds `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`
@@ -31,7 +31,7 @@ and `GITHUB_TOKEN`. The publishable Supabase key in `web/src/config.js` is publi
 ```bash
 npm ci
 npm run dev          # local app; add ?demo to the URL for made-up data with no sign-in
-npm test             # rules + Edge Function tests (also run by Netlify before every deploy)
+npm test             # rules + Edge Function tests (also run before every deploy)
 npm run build
 node supabase/build_functions.mjs   # rebuild the pasteable functions/*/index.ts after editing a handler
 ```

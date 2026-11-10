@@ -51,7 +51,7 @@ function fakeGitHub({ items = [], branch = true, conflicts = 0 } = {}) {
   let n = 0;
   const fetchFn = async (url, init = {}) => {
     const u = new URL(url);
-    const path = u.pathname.replace("/repos/jjpvoskuil/Gigi.s-Vixen-Vault/", "");
+    const path = u.pathname.replace("/repos/jjpvoskuil/vixen-vault-data/", "");
     const method = init.method || "GET";
     st.log.push(`${method} ${path}`);
     const json = (status, body) => new Response(JSON.stringify(body), { status });
@@ -148,3 +148,15 @@ test("index.ts is up to date and loads", async () => {
   assert.equal(typeof mod.makePunchHandler, "function");
   assert.equal(typeof mod.punch.applyEdit, "function");
 });
+
+test("defaults to the private data repo; GITHUB_REPO overrides", async () => {
+  const seen = [];
+  const fetchFn = async (url) => { seen.push(new URL(url).pathname); return new Response(JSON.stringify({}), { status: 200 }); };
+  const mk = (over) => makePunchHandler({ createClient: sbFake(), fetchFn, env: env(over), punch, sleep: async () => {} });
+  await mk({})(post({ action: "list" }));
+  assert.ok(seen[0].startsWith("/repos/jjpvoskuil/vixen-vault-data/"), seen[0]);
+  seen.length = 0;
+  await mk({ GITHUB_REPO: "someone/else" })(post({ action: "list" }));
+  assert.ok(seen[0].startsWith("/repos/someone/else/"), seen[0]);
+});
+

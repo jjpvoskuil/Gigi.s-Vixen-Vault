@@ -6,21 +6,32 @@ He prefers direct, accurate answers.
 
 ## Start of every session
 1. Read `docs/SESSION_LOG.md` (latest entry first).
-2. Read the punch list — bugs/changes/ideas Gigi and John logged in the app:
+2. Read the punch list — bugs/changes/ideas Gigi and John logged in the app. It lives in the **private** repo
+   `jjpvoskuil/vixen-vault-data`, branch `punch-list` (moved there 2026-11-10: this app repo is public, and
+   screenshots can show her photos — never copy punch-list content or screenshots into this repo). Attach that repo
+   (add_repo, push access), then:
    ```bash
-   git fetch origin punch-list
-   git show origin/punch-list:punch_list.json
+   git -C <data-repo> fetch origin punch-list
+   git -C <data-repo> show origin/punch-list:punch_list.json
    ```
    Work items with status "Open"/"In progress", High priority first. Read `comments` and `screenshots`
    (`git show origin/punch-list:screenshots/<file>`). A new comment or screenshot on a Done item reopens it.
 3. When an item is finished: set `status` "Done", write a short plain-English `dev_notes`, bump `updated`, commit to
-   the `punch-list` branch only (never `main`), keep the shape `{"items": [...]}` with 2-space indent. Pull first —
-   the app writes to the same file.
+   that repo's `punch-list` branch only, keep the shape `{"items": [...]}` with 2-space indent. Pull first — the
+   app writes to the same file.
 4. End of session: add a dated entry to `docs/SESSION_LOG.md` (what changed, what John set up, what's next).
 
 ## Stack
-- `web/` — React 19 + Vite. Netlify (site `vixen-vault`) runs `npm ci && npm test && npm run build` on every push to
-  `main`; a failing test blocks the deploy.
+- **This repo is PUBLIC** (since 2026-11-10, for free GitHub Pages). Never commit personal data: no photos, real
+  measurements, email addresses, keys or punch-list content. All data lives in Supabase; the punch list and backups
+  live in the private `vixen-vault-data` repo.
+- `web/` — React 19 + Vite, hosted on **GitHub Pages**: https://jjpvoskuil.github.io/Gigi.s-Vixen-Vault/
+  `.github/workflows/pages.yml` runs `npm ci`, `npm test`, then `npm run build` with `BASE=/Gigi.s-Vixen-Vault/` on
+  every push to main touching `web/**`; a failing test blocks the deploy. Check with `gh run list --workflow pages.yml`.
+  Everything local must be base-aware: `%BASE_URL%` in index.html, `import.meta.env.BASE_URL` in code, relative
+  manifest paths; sign-in `redirectTo` = origin + BASE_URL. Pages can't send headers, so robots/referrer are meta
+  tags and a script in index.html refuses to run inside a frame. The build time shows on More and the sign-in screen.
+  `netlify.toml` is kept only as a fallback (Netlify's free plan ran out of deploy credits).
 - Supabase project `heqbdsfznchdtknhpgql`: tables `items`, `profile`, `body_photos`, `styles`, `app_users`; private
   bucket `vault` (`items/…`, `body/…`, `_thumb.jpg` beside each photo). Row-level security: approved emails
   (`app_users`) see and edit everything; admins manage `app_users`. Schema changes → give John SQL to paste into
@@ -33,8 +44,9 @@ He prefers direct, accurate answers.
     Sonnet 5.5 rejects forced tool_choice: requests use strict tools + `tool_choice: auto` + "answer only by calling".
     Also `tryon` → Google Gemini image model; secrets `GEMINI_API_KEY`, optional `GEMINI_IMAGE_MODEL`
     (default gemini-3.1-flash-image). The app saves results to the `tryons` table (Me → Looks on me).
-  - `vault-punch` — secret `GITHUB_TOKEN` (fine-grained, Contents read/write on this repo; it expires — the app then
-    says GitHub didn't accept the key).
+  - `vault-punch` — secret `GITHUB_TOKEN` (Contents read/write on `vixen-vault-data`; it expires — the app then says
+    GitHub didn't accept the key). Writes `punch_list.json` + `screenshots/` on that repo's `punch-list` branch
+    (`GITHUB_REPO` / `GITHUB_BRANCH` secrets override).
 - `web/src/lib/db.js`: one data API, two backends — Supabase, and `demoDb` (browser-only made-up data, `?demo`).
 - Rules ported from Python are parity-tested: `web/reference/*.py` → `web/supabase/make_fixtures.py` → `*.fixtures.json`.
 - Backups: private repo `vixen-vault-data` (GitHub Actions Mon & Thu; restore via `web/supabase/make_restore.py`).

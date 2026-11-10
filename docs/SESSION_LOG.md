@@ -2,6 +2,18 @@
 
 Newest first. One dated entry per working session.
 
+## 2026-11-10 — Moved hosting from Netlify to GitHub Pages
+- Why: Netlify's free plan is 300 credits/month at 15 per production deploy (~20 deploys); on Deercast they ran out
+  and later deploys were silently "Skipped".
+- John chose to make this repo public for free GitHub Pages. Before that: checked the whole history — no photos,
+  measurements, keys or data (only icons, code, and sample test numbers). Moved the punch list (and its screenshots)
+  to the private repo `vixen-vault-data`, branch `punch-list`; `vault-punch` now defaults there. Removed Gigi's email
+  username from the code (the punch list's "From" now comes from the Google first name).
+- Pages build: `.github/workflows/pages.yml`, Vite `base` from `BASE`, `%BASE_URL%` in index.html, relative manifest,
+  sign-in `redirectTo` = origin + BASE_URL, robots/referrer meta tags + frame guard script, build stamp on More and the
+  sign-in screen. Tested under /Gigi.s-Vixen-Vault/ on a simulated iPhone (demo mode): all screens, icons, manifest.
+- `netlify.toml` kept as a fallback.
+
 ## 2026-11-05 — Moved from Streamlit to the web app
 - Built the React app in `web/` (design E2 "Velvet Vault"): Closet, Unlock, Add, Me, More → Punch list.
 - Supabase: schema + row-level security (`web/supabase/schema.sql`), Google sign-in (John admin, Gigi member),

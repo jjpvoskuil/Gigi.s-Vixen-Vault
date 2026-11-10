@@ -1,4 +1,4 @@
-# Gigi's Vixen Vault web app (React app in web/). Netlify builds this on every push to main.
+# FALLBACK ONLY (since 2026-11-10 the app is on GitHub Pages — .github/workflows/pages.yml). Netlify builds web/ on push.
 [build]
   base = "web"
   command = "npm ci && npm test && npm run build"

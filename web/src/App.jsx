@@ -13,6 +13,9 @@ import { demoDb, supabaseDb } from "./lib/db.js";
 
 const TAB_IDS = ["closet", "unlock", "add", "me", "more"];
 
+// When this copy was built (vite.config.js) — so you can tell the phone has the latest version.
+const BUILT = typeof __BUILD__ === "undefined" ? "(dev)" : __BUILD__;
+
 export default function App() {
   const demo = !configured || new URLSearchParams(location.search).has("demo"); // ?demo = made-up data only
   const [session, setSession] = useState(undefined); // undefined = still checking
@@ -62,7 +65,8 @@ export default function App() {
     onDescribe: async (id) => { try { const it = await db.describeItem(id); await load(); setToast("Described"); return it; } catch (e) { setToast(e.message); return null; } },
   };
 
-  const signIn = () => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
+  // Return to this app's own folder (e.g. https://jjpvoskuil.github.io/Gigi.s-Vixen-Vault/), not the bare site root.
+  const signIn = () => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin + import.meta.env.BASE_URL } });
   const signOut = () => { if (!demo) supabase.auth.signOut(); else location.reload(); };
 
   if (error) return <Splash><p className="err">Couldn't load: {error}</p><button className="btn" onClick={() => location.reload()}>Try again</button></Splash>;
@@ -99,7 +103,7 @@ export default function App() {
       )}
       {tab === "add" && <AddScreen db={db} items={data.items} reload={load} onCloset={() => go("closet")} />}
       {tab === "me" && <MeScreen db={db} profile={data.profile} styles={data.styles} items={data.items} save={save} />}
-      {tab === "more" && moreView === "punch" && <PunchScreen db={db} email={session.user.email} onBack={() => setMoreView("menu")} toast={setToast} />}
+      {tab === "more" && moreView === "punch" && <PunchScreen db={db} user={session.user} onBack={() => setMoreView("menu")} toast={setToast} />}
       {tab === "more" && moreView === "shop" && (
         <ShopScreen db={db} items={data.items} styles={data.styles} profile={data.profile} result={ideas} setResult={setIdeas}
           onBack={() => setMoreView("menu")} onAdd={() => go("add")} toast={setToast} />
@@ -116,6 +120,7 @@ export default function App() {
             <li><button onClick={signOut}><Icon name="out" size={22} />
               <span><b>Sign out</b><em>{session.user.email}</em></span></button></li>
           </ul>
+          <p className="built">App updated {BUILT}{demo ? " · demo data" : ""}</p>
         </div>
       )}
       <TabBar tab={tab} onTab={go} />
@@ -128,10 +133,11 @@ function Splash({ children }) {
   return (
     <div className="splash">
       <Dial />
-      <img src="/icon-512.png" alt="" />
+      <img src={`${import.meta.env.BASE_URL}icon-512.png`} alt="" />
       <span className="eyebrow" style={{ marginTop: 14 }}>Gigi's</span>
       <h1 className="title">Velvet Vault</h1>
       {children}
+      <p className="built">App updated {BUILT}</p>
     </div>
   );
 }

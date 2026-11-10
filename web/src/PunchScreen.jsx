@@ -8,10 +8,14 @@ import { screenshotB64 } from "./lib/photo.js";
 
 const MARK = { Bug: "🐞", Change: "✏️", "New idea": "💡", Question: "❓" };
 const WHO = ["Gigi", "John"];
-export const whoFor = (email) => (/jjvoskuil3272/i.test(email || "") ? "Gigi" : /jjpvoskuil/i.test(email || "") ? "John" : "");
+// Who's signed in, from their Google first name (no addresses in this public code).
+export const whoFor = (user) => {
+  const first = String(user?.user_metadata?.full_name || user?.user_metadata?.name || "").trim().split(/\s+/)[0] || "";
+  return /^(jeanne|gigi)$/i.test(first) ? "Gigi" : /^john$/i.test(first) ? "John" : "";
+};
 const day = (iso) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "");
 
-export default function PunchScreen({ db, email, onBack, toast }) {
+export default function PunchScreen({ db, user, onBack, toast }) {
   const [items, setItems] = useState(null);
   const [error, setError] = useState("");
   const [adding, setAdding] = useState(false);
@@ -57,9 +61,9 @@ export default function PunchScreen({ db, email, onBack, toast }) {
         <div className="pad"><button className="link" onClick={load}>Refresh</button></div>
       </>}
 
-      {adding && <AddSheet email={email} onClose={() => setAdding(false)}
+      {adding && <AddSheet user={user} onClose={() => setAdding(false)}
         onAdd={async (body) => { if (await act("add", body, "Added — Claude will see it")) setAdding(false); }} />}
-      {current && <ItemSheet db={db} item={current} email={email} act={act} onClose={() => setOpenId(null)} />}
+      {current && <ItemSheet db={db} item={current} user={user} act={act} onClose={() => setOpenId(null)} />}
     </div>
   );
 }
@@ -124,8 +128,8 @@ function Fields({ f, set }) {
   </>;
 }
 
-function AddSheet({ email, onClose, onAdd }) {
-  const [f, setF] = useState({ title: "", details: "", type: "Change", page: "Other", priority: "Normal", added_by: whoFor(email) || "Gigi" });
+function AddSheet({ user, onClose, onAdd }) {
+  const [f, setF] = useState({ title: "", details: "", type: "Change", page: "Other", priority: "Normal", added_by: whoFor(user) || "Gigi" });
   const [shot, setShot] = useState("");
   const [busy, setBusy] = useState(false);
   const set = (p) => setF({ ...f, ...p });
@@ -143,11 +147,11 @@ function AddSheet({ email, onClose, onAdd }) {
   );
 }
 
-function ItemSheet({ db, item, email, act, onClose }) {
+function ItemSheet({ db, item, user, act, onClose }) {
   const [editing, setEditing] = useState(false);
   const [f, setF] = useState(item);
   const [note, setNote] = useState("");
-  const [who, setWho] = useState(whoFor(email) || "Gigi");
+  const [who, setWho] = useState(whoFor(user) || "Gigi");
   const [shot, setShot] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
