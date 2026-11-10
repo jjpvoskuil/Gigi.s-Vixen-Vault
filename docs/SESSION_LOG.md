@@ -17,9 +17,13 @@ Newest first. One dated entry per working session.
   Supabase secret `GITHUB_REPO=jjpvoskuil/vixen-vault-data`; old `punch-list` branch deleted here (copy verified
   identical first); repo made public; Pages source = GitHub Actions (first run failed as expected; manual re-run
   succeeded); Supabase Site URL = https://jjpvoskuil.github.io/Gigi.s-Vixen-Vault/ and redirect URLs
-  `https://jjpvoskuil.github.io/Gigi.s-Vixen-Vault/**` + `https://vixen-vault.netlify.app/**` added. The old entry
-  `ttps://vixen-vault.netlify.app/**` (missing "h", from setup) is still listed — harmless; delete once the move is confirmed.
-- Not yet confirmed live: sign-in at the new address and a punch-list save going to `vixen-vault-data` (needs John signed in).
+  `https://jjpvoskuil.github.io/Gigi.s-Vixen-Vault/**` added.
+- Confirmed live: John signed in at the new address and added a punch-list "Test" item, which landed in
+  `vixen-vault-data` (public repo still only has `main`); the test item was then removed.
+- Netlify retired (John: "delete it"): its credits were already spent — today's pushes showed "Skipped", the last real
+  deploy was Nov 5. Deleted the Netlify project `vixen-vault` (vixen-vault.netlify.app no longer works) and removed both
+  Netlify redirect URLs from Supabase (one had been misspelled "ttps://" since setup). Supabase now allows only the
+  GitHub Pages address. `netlify.toml` stays in the repo but no Netlify project uses it.
 
 ## 2026-11-05 — Moved from Streamlit to the web app
 - Built the React app in `web/` (design E2 "Velvet Vault"): Closet, Unlock, Add, Me, More → Punch list.

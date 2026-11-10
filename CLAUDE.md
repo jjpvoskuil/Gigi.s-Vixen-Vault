@@ -31,7 +31,8 @@ He prefers direct, accurate answers.
   Everything local must be base-aware: `%BASE_URL%` in index.html, `import.meta.env.BASE_URL` in code, relative
   manifest paths; sign-in `redirectTo` = origin + BASE_URL. Pages can't send headers, so robots/referrer are meta
   tags and a script in index.html refuses to run inside a frame. The build time shows on More and the sign-in screen.
-  `netlify.toml` is kept only as a fallback (Netlify's free plan ran out of deploy credits).
+  `netlify.toml` is unused (the Netlify project was deleted 2026-11-10 after its free deploy credits ran out); kept so a
+  Netlify site could be recreated if ever needed.
 - Supabase project `heqbdsfznchdtknhpgql`: tables `items`, `profile`, `body_photos`, `styles`, `app_users`; private
   bucket `vault` (`items/…`, `body/…`, `_thumb.jpg` beside each photo). Row-level security: approved emails
   (`app_users`) see and edit everything; admins manage `app_users`. Schema changes → give John SQL to paste into

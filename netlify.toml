@@ -1,4 +1,5 @@
-# FALLBACK ONLY (since 2026-11-10 the app is on GitHub Pages — .github/workflows/pages.yml). Netlify builds web/ on push.
+# UNUSED: the app is on GitHub Pages (.github/workflows/pages.yml) and the Netlify project was deleted on 2026-11-10.
+# Kept so a Netlify site could be recreated from this repo if ever needed.
 [build]
   base = "web"
   command = "npm ci && npm test && npm run build"
