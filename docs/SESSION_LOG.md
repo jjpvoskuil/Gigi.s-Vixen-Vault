@@ -13,6 +13,13 @@ Newest first. One dated entry per working session.
   sign-in `redirectTo` = origin + BASE_URL, robots/referrer meta tags + frame guard script, build stamp on More and the
   sign-in screen. Tested under /Gigi.s-Vixen-Vault/ on a simulated iPhone (demo mode): all screens, icons, manifest.
 - `netlify.toml` kept as a fallback.
+- Settings done in John's Chrome with his OK: "Vault punch list" GitHub key now also reaches `vixen-vault-data`;
+  Supabase secret `GITHUB_REPO=jjpvoskuil/vixen-vault-data`; old `punch-list` branch deleted here (copy verified
+  identical first); repo made public; Pages source = GitHub Actions (first run failed as expected; manual re-run
+  succeeded); Supabase Site URL = https://jjpvoskuil.github.io/Gigi.s-Vixen-Vault/ and redirect URLs
+  `https://jjpvoskuil.github.io/Gigi.s-Vixen-Vault/**` + `https://vixen-vault.netlify.app/**` added. The old entry
+  `ttps://vixen-vault.netlify.app/**` (missing "h", from setup) is still listed — harmless; delete once the move is confirmed.
+- Not yet confirmed live: sign-in at the new address and a punch-list save going to `vixen-vault-data` (needs John signed in).
 
 ## 2026-11-05 — Moved from Streamlit to the web app
 - Built the React app in `web/` (design E2 "Velvet Vault"): Closet, Unlock, Add, Me, More → Punch list.
