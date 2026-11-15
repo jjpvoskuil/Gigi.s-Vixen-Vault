@@ -2,6 +2,22 @@
 
 Newest first. One dated entry per working session.
 
+## 2026-11-15 — Colors & shape, Build an outfit, Vixen Vault titles
+- Punch list (all Gigi's, now Done): best colors for her skin tone; styles for her body type; accessory ideas / build
+  an outfit.
+- Me → Colors & shape (`src/Guide.jsx`): vault-ai action `guide` sends her Face (new body-photo view) + Front photos,
+  measurements (with a rule-based shape from `bodyShape()`), and her own coloring notes (`profile.coloring`: hair,
+  eyes, skin, best metal, vein color) → `profile.guide` (season, undertone, contrast, swatches with hex, neutrals,
+  metals, colors to keep off the face; shape + flattering cuts by area; 3-5 suited styles, one-tap add to My styles).
+  `profileText()` adds guide lines, so outfits and Shop the gaps use it; fixtures unchanged (no guide in them).
+- Unlock → Build an outfit: pick ≤6 pieces and/or type an idea → vault-ai action `complete` → finished looks that
+  keep her pieces, "Finish with" accessories (marked "yours" when owned), shopping extras. Look cards shared with
+  style mode (`LookCard`).
+- Closet heading and sign-in screen now say "Vixen Vault" (was "Velvet Vault"; the design name E2 stays in CSS).
+- John to do: run the two new `alter table public.profile …` lines (or all of schema.sql) in Supabase SQL Editor;
+  re-paste `web/supabase/functions/vault-ai/index.ts` into Edge Functions → vault-ai → Deploy.
+- Next: John wants other users with their own closets (per-person data instead of shared).
+
 ## 2026-11-10 — Moved hosting from Netlify to GitHub Pages
 - Why: Netlify's free plan is 300 credits/month at 15 per production deploy (~20 deploys); on Deercast they ran out
   and later deploys were silently "Skipped".
