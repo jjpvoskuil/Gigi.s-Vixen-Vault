@@ -23,7 +23,11 @@ Newest first. One dated entry per working session.
   folders, More → People (admin: add someone, view their closet, remove), red "Viewing X's closet" bar, screen
   eyebrow = owner's first name (was hard-coded "Gigi's"), Me → Measurements: Clothes Women's/Men's (Chest, no
   underbust/bra for men). Existing data migrates to the single non-admin user (Gigi) — run the SQL BEFORE adding Alex.
-- Setup order: schema.sql (whole file) in SQL Editor → re-paste vault-ai → merge `multi-user` to main.
+- Setup order: schema.sql (whole file) in SQL Editor → re-paste vault-ai → merge `multi-user` to main. All three done;
+  multi-user is live. (Branch `multi-user` couldn't be deleted from here — harmless, delete on GitHub any time.)
+- No-Google-account plan (John agreed): first, have them create a Google account with their existing email. If that
+  comes up more than once, add "Sign in with email" (6-digit code) — needs custom SMTP (e.g. Resend/Brevo) in
+  Supabase first, since the built-in sender only reaches the Supabase team at 2 emails/hour.
 
 ## 2026-11-10 — Moved hosting from Netlify to GitHub Pages
 - Why: Netlify's free plan is 300 credits/month at 15 per production deploy (~20 deploys); on Deercast they ran out
