@@ -7,11 +7,12 @@ import { PAGES, PRIORITIES, STATUSES, TYPES, allScreenshots, sortItems } from ".
 import { screenshotB64 } from "./lib/photo.js";
 
 const MARK = { Bug: "🐞", Change: "✏️", "New idea": "💡", Question: "❓" };
-const WHO = ["Gigi", "John"];
+const WHO = ["Gigi", "John", "Alex", "Val"];
 // Who's signed in, from their Google first name (no addresses in this public code).
 export const whoFor = (user) => {
   const first = String(user?.user_metadata?.full_name || user?.user_metadata?.name || "").trim().split(/\s+/)[0] || "";
-  return /^(jeanne|gigi)$/i.test(first) ? "Gigi" : /^john$/i.test(first) ? "John" : "";
+  if (/^(jeanne|gigi)$/i.test(first)) return "Gigi";
+  return WHO.find((w) => w.toLowerCase() === first.toLowerCase()) || (first ? first[0].toUpperCase() + first.slice(1) : "");
 };
 const day = (iso) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "");
 

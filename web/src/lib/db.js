@@ -13,14 +13,24 @@ const URL_SECONDS = 6 * 3600;
 const WISH_KEYS = ["piece", "category", "color", "why", "search", "pairs_with", "priority", "status", "source"];
 const wishRow = (w) => ({ status: "want", ...pick(w, WISH_KEYS), pairs_with: (w.pairs_with || []).map((x) => (typeof x === "object" ? x.id : x)) });
 
+/** Photo folder for a person: first 16 hex of sha256(email) — same as public.folder_for() in schema.sql. */
+export async function folderFor(email) {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(lower(email)));
+  return Array.from(new Uint8Array(d), (b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+}
+
 // ---------------------------------------------------------------- Supabase
-export function supabaseDb(sb, email) {
+// email = who is signed in; owner = whose closet is shown (themselves, or anyone for an admin).
+export function supabaseDb(sb, email, ownerEmail = email) {
   const me = lower(email);
+  const owner = lower(ownerEmail) || me;
+  let folder = null;
+  const inFolder = async (stem) => `${(folder ||= await folderFor(owner))}/${stem}`;
   const ok = (r) => { if (r.error) throw new Error(r.error.message); return r.data; };
   const urlCache = new Map(); // path -> {url, until}
   const bucket = () => sb.storage.from(BUCKET);
   async function callFn(name, body) {
-    const { data, error } = await sb.functions.invoke(name, { body });
+    const { data, error } = await sb.functions.invoke(name, { body: name === "vault-ai" ? { ...body, owner } : body });
     if (!error) return data;
     let msg = error.message;
     try { const j = await error.context.json(); if (j?.error) msg = j.error; } catch { /* keep msg */ }
@@ -29,26 +39,27 @@ export function supabaseDb(sb, email) {
   }
   const callAi = (body) => callFn("vault-ai", body);
   return {
-    kind: "supabase", email: me,
+    kind: "supabase", email: me, owner,
     async whoami() { const u = ok(await sb.from("app_users").select("*").eq("email", me)); return u[0] || null; },
     listUsers: async () => ok(await sb.from("app_users").select("*").order("email")),
-    saveUser: async (u) => ok(await sb.from("app_users").upsert({ email: lower(u.email), name: u.name || "", role: u.role || "member" })),
+    saveUser: async (u) => ok(await sb.from("app_users").upsert({ email: lower(u.email), name: (u.name || "").trim(), role: u.role || "member" })),
     deleteUser: async (e) => ok(await sb.from("app_users").delete().eq("email", lower(e))),
 
-    listItems: async () => ok(await sb.from("items").select("*").order("created_at", { ascending: false })),
-    saveItem: async (id, fields) => ok(await sb.from("items").update({ ...pick(fields, ITEM_FIELDS), updated_at: nowIso() }).eq("id", id)),
+    listItems: async () => ok(await sb.from("items").select("*").eq("owner", owner).order("created_at", { ascending: false })),
+    saveItem: async (id, fields) => ok(await sb.from("items").update({ ...pick(fields, ITEM_FIELDS), updated_at: nowIso() }).eq("id", id).eq("owner", owner)),
     deleteItem: async (item) => {
-      ok(await sb.from("items").delete().eq("id", item.id));
+      ok(await sb.from("items").delete().eq("id", item.id).eq("owner", owner));
       const paths = [item.image_path, item.thumb_path].filter(Boolean);
       if (paths.length) await bucket().remove(paths); // best effort, like the Python app
     },
 
     /** Upload both JPEGs, then add the item row. Returns the new item. */
-    async addItem({ full, thumb }, stem, fields = {}) {
+    async addItem({ full, thumb }, stem0, fields = {}) {
+      const stem = await inFolder(stem0);
       const up = async (path, blob) => ok(await bucket().upload(path, blob, { contentType: "image/jpeg", upsert: false }));
       await up(`${stem}.jpg`, full);
       await up(`${stem}_thumb.jpg`, thumb);
-      const row = { name: "New item", category: "other", ...pick(fields, ITEM_FIELDS), image_path: `${stem}.jpg`, thumb_path: `${stem}_thumb.jpg` };
+      const row = { owner, name: "New item", category: "other", ...pick(fields, ITEM_FIELDS), image_path: `${stem}.jpg`, thumb_path: `${stem}_thumb.jpg` };
       try { return ok(await sb.from("items").insert(row).select("*").single()); }
       catch (e) { await bucket().remove([row.image_path, row.thumb_path]); throw e; }
     },
@@ -64,47 +75,54 @@ export function supabaseDb(sb, email) {
     makeGuide: () => callAi({ action: "guide" }),
     /** Finish an outfit around her pieces / idea: {looks:[{title, items:[ids], why, tip, accessories:[{idea, item_id}], add_piece}], shopping}. */
     completeOutfit: (opts) => callAi({ action: "complete", ...opts }),
-    listWish: async () => ok(await sb.from("wishlist").select("*").order("created_at", { ascending: false })),
-    addWish: async (w) => ok(await sb.from("wishlist").insert(wishRow(w)).select("*").single()),
-    updateWish: async (id, fields) => ok(await sb.from("wishlist").update({ ...fields, updated_at: nowIso() }).eq("id", id)),
-    deleteWish: async (id) => ok(await sb.from("wishlist").delete().eq("id", id)),
-    listTryons: async () => ok(await sb.from("tryons").select("*").order("created_at", { ascending: false })),
-    async addTryon({ full, thumb }, stem, meta) {
+    listWish: async () => ok(await sb.from("wishlist").select("*").eq("owner", owner).order("created_at", { ascending: false })),
+    addWish: async (w) => ok(await sb.from("wishlist").insert({ ...wishRow(w), owner }).select("*").single()),
+    updateWish: async (id, fields) => ok(await sb.from("wishlist").update({ ...fields, updated_at: nowIso() }).eq("id", id).eq("owner", owner)),
+    deleteWish: async (id) => ok(await sb.from("wishlist").delete().eq("id", id).eq("owner", owner)),
+    listTryons: async () => ok(await sb.from("tryons").select("*").eq("owner", owner).order("created_at", { ascending: false })),
+    async addTryon({ full, thumb }, stem0, meta) {
+      const stem = await inFolder(stem0);
       const paths = [`${stem}.jpg`, `${stem}_thumb.jpg`];
       ok(await bucket().upload(paths[0], full, { contentType: "image/jpeg" }));
       ok(await bucket().upload(paths[1], thumb, { contentType: "image/jpeg" }));
-      const row = { title: meta.title || "", style: meta.style || "", item_ids: meta.item_ids || [], body_photo_id: meta.body_photo_id || null,
+      const row = { owner, title: meta.title || "", style: meta.style || "", item_ids: meta.item_ids || [], body_photo_id: meta.body_photo_id || null,
         image_path: paths[0], thumb_path: paths[1] };
       try { return ok(await sb.from("tryons").insert(row).select("*").single()); }
       catch (e) { await bucket().remove(paths); throw e; }
     },
     deleteTryon: async (t) => {
-      ok(await sb.from("tryons").delete().eq("id", t.id));
+      ok(await sb.from("tryons").delete().eq("id", t.id).eq("owner", owner));
       await bucket().remove([t.image_path, t.thumb_path].filter(Boolean));
     },
 
     /** Punch list (vault-punch server function): list/add/edit/status/delete/shot. */
     punch: (action, body = {}) => callFn("vault-punch", { action, ...body }),
 
-    getProfile: async () => (ok(await sb.from("profile").select("*").eq("id", 1))[0] || { id: 1, measurements: {}, sizes: {}, my_styles: [] }),
-    saveProfile: async (fields) => ok(await sb.from("profile").upsert({ ...fields, id: 1, updated_at: nowIso() })),
-    listStyles: async () => ok(await sb.from("styles").select("*").order("sort_order").order("name")),
-    listBodyPhotos: async () => ok(await sb.from("body_photos").select("*").order("created_at")),
-    async addBodyPhoto({ full, thumb }, stem, label) {
+    getProfile: async () => (ok(await sb.from("profile").select("*").eq("owner", owner))[0] || { owner, wear: "womens", measurements: {}, sizes: {}, my_styles: [] }),
+    saveProfile: async (fields) => ok(await sb.from("profile").upsert({ ...fields, owner, updated_at: nowIso() }, { onConflict: "owner" })),
+    /** The shared built-in styles plus this person's own. */
+    listStyles: async () => ok(await sb.from("styles").select("*").order("sort_order").order("name")).filter((s) => !s.owner || s.owner === owner),
+    listBodyPhotos: async () => ok(await sb.from("body_photos").select("*").eq("owner", owner).order("created_at")),
+    async addBodyPhoto({ full, thumb }, stem0, label) {
+      const stem = await inFolder(stem0);
       const paths = [`${stem}.jpg`, `${stem}_thumb.jpg`];
       ok(await bucket().upload(paths[0], full, { contentType: "image/jpeg" }));
       ok(await bucket().upload(paths[1], thumb, { contentType: "image/jpeg" }));
-      try { ok(await sb.from("body_photos").insert({ label, image_path: paths[0], thumb_path: paths[1] })); }
+      try { ok(await sb.from("body_photos").insert({ owner, label, image_path: paths[0], thumb_path: paths[1] })); }
       catch (e) { await bucket().remove(paths); throw e; }
     },
-    updateBodyPhoto: async (id, label) => ok(await sb.from("body_photos").update({ label }).eq("id", id)),
+    updateBodyPhoto: async (id, label) => ok(await sb.from("body_photos").update({ label }).eq("id", id).eq("owner", owner)),
     deleteBodyPhoto: async (p) => {
-      ok(await sb.from("body_photos").delete().eq("id", p.id));
+      ok(await sb.from("body_photos").delete().eq("id", p.id).eq("owner", owner));
       const paths = [p.image_path, p.thumb_path].filter(Boolean);
       if (paths.length) await bucket().remove(paths);
     },
-    addStyle: async (name, description = "") => ok(await sb.from("styles").upsert({ name: name.trim(), description: description.trim(), custom: true, sort_order: 200 })),
-    deleteStyle: async (name) => ok(await sb.from("styles").delete().eq("name", name)),
+    async addStyle(name, description = "") {
+      const r = await sb.from("styles").insert({ owner, name: name.trim(), description: description.trim(), custom: true, sort_order: 200 });
+      if (r.error && /duplicate|unique/i.test(r.error.message)) throw new Error(`There's already a style called “${name.trim()}”.`);
+      return ok(r);
+    },
+    deleteStyle: async (name) => ok(await sb.from("styles").delete().eq("name", name).eq("owner", owner)),
 
     /** Temporary private links for photos: {path: url}. Cached until shortly before they expire. */
     async photoUrls(paths) {

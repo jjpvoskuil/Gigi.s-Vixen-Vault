@@ -6,12 +6,15 @@ import UnlockScreen from "./UnlockScreen.jsx";
 import MeScreen from "./MeScreen.jsx";
 import PunchScreen from "./PunchScreen.jsx";
 import ShopScreen from "./ShopScreen.jsx";
-import { Dial, Head, TabBar } from "./Shell.jsx";
+import PeopleScreen from "./PeopleScreen.jsx";
+import { Dial, Head, TabBar, setOwnerLabel } from "./Shell.jsx";
 import Icon from "./Icon.jsx";
 import { demoSeed } from "./demo.js";
 import { demoDb, supabaseDb } from "./lib/db.js";
 
 const TAB_IDS = ["closet", "unlock", "add", "me", "more"];
+const VIEW_KEY = "vixenvault.viewAs";
+const firstName = (u) => String(u?.name || u?.email || "").trim().split(/[\s@.]/)[0].replace(/^./, (c) => c.toUpperCase());
 
 // When this copy was built (vite.config.js) — so you can tell the phone has the latest version.
 const BUILT = typeof __BUILD__ === "undefined" ? "(dev)" : __BUILD__;
@@ -23,7 +26,9 @@ export default function App() {
   const [data, setData] = useState(null);             // {items, styles, profile}
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
-  const [moreView, setMoreView] = useState("menu");     // More tab: "menu" | "punch"
+  const [moreView, setMoreView] = useState("menu");     // More tab: "menu" | "punch" | "shop" | "people"
+  const [viewAs, setViewAsState] = useState(() => { try { return localStorage.getItem(VIEW_KEY) || ""; } catch { return ""; } }); // admins: whose closet
+  const [people, setPeople] = useState([]);           // admins: everyone on the list
   const [looks, setLooks] = useState(null);
   const [built, setBuilt] = useState(null);           // last "build an outfit" results
   const [unlockMode, setUnlockMode] = useState("style");
@@ -39,7 +44,16 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, [demo]);
 
-  const db = useMemo(() => (session ? (demo ? demoDb(demoSeed) : supabaseDb(supabase, session.user.email)) : null), [session?.user?.email, demo]);
+  // Only an admin's choice of someone else counts; everyone else always sees their own closet.
+  const myEmail = (session?.user?.email || "").toLowerCase();
+  const owner = me?.role === "admin" && viewAs ? viewAs : myEmail;
+  const authDb = useMemo(() => (session ? (demo ? demoDb(demoSeed) : supabaseDb(supabase, session.user.email)) : null), [session?.user?.email, demo]);
+  const db = useMemo(() => (!authDb || demo || owner === myEmail ? authDb : supabaseDb(supabase, myEmail, owner)), [authDb, owner, myEmail, demo]);
+  const setViewAs = (email) => {
+    const e = (email || "").toLowerCase() === myEmail ? "" : (email || "").toLowerCase();
+    try { e ? localStorage.setItem(VIEW_KEY, e) : localStorage.removeItem(VIEW_KEY); } catch { /* ignore */ }
+    setViewAsState(e); setData(null); setLooks(null); setBuilt(null); setIdeas(null); setMoreView("menu"); go("closet");
+  };
 
   const load = useCallback(async () => {
     const [items, styles, profile] = await Promise.all([db.listItems(), db.listStyles(), db.getProfile()]);
@@ -47,11 +61,15 @@ export default function App() {
   }, [db]);
 
   useEffect(() => {
-    if (!db) return;
+    if (!authDb) return;
     (async () => {
-      try { const u = await db.whoami(); setMe(u); if (u) await load(); } catch (e) { setError(e.message); }
+      try {
+        const u = await authDb.whoami(); setMe(u);
+        if (u?.role === "admin") setPeople(await authDb.listUsers());
+      } catch (e) { setError(e.message); }
     })();
-  }, [db, load]);
+  }, [authDb]);
+  useEffect(() => { if (db && me) load().catch((e) => setError(e.message)); }, [db, me, load, owner]);
 
   /** Run a save, report failure, then reload. */
   const save = useCallback(async (fn, ok) => {
@@ -75,7 +93,7 @@ export default function App() {
   if (session === undefined) return <Splash><p className="muted">Unlocking…</p></Splash>;
   if (!session) return (
     <Splash>
-      <p className="muted">Private — for Gigi's eyes (and John's).</p>
+      <p className="muted">Private — family only.</p>
       <button className="btn dark" onClick={signIn}>Sign in with Google</button>
     </Splash>
   );
@@ -87,10 +105,15 @@ export default function App() {
     </Splash>
   );
   if (!data) return <Splash><p className="muted">Unlocking…</p></Splash>;
+  const ownerRow = people.find((p) => p.email === owner) || (owner === myEmail ? me : null);
+  const ownerName = firstName(ownerRow) || firstName({ name: session.user.user_metadata?.full_name }) || "";
+  setOwnerLabel(ownerName);
+  const viewing = owner !== myEmail;
 
   return (
     <>
       {demo && <span className="demo">DEMO</span>}
+      {viewing && <div className="viewbar">Viewing {ownerName}'s closet<button onClick={() => setViewAs("")}>Back to mine</button></div>}
       {tab === "closet" && (
         <ClosetScreen db={db} items={data.items} styles={data.styles} onUnlock={() => go("unlock")}
           {...itemActions}
@@ -111,6 +134,11 @@ export default function App() {
         <ShopScreen db={db} items={data.items} styles={data.styles} profile={data.profile} result={ideas} setResult={setIdeas}
           onBack={() => setMoreView("menu")} onAdd={() => go("add")} toast={setToast} />
       )}
+      {tab === "more" && moreView === "people" && me?.role === "admin" && (
+        <PeopleScreen db={authDb} people={people} myEmail={myEmail} owner={owner} onBack={() => setMoreView("menu")} toast={setToast}
+          onView={setViewAs} reload={async () => setPeople(await authDb.listUsers())}
+          onWear={async (email, wear) => { if (!demo) await supabaseDb(supabase, myEmail, email).saveProfile({ wear }); }} />
+      )}
       {tab === "more" && moreView === "menu" && (
         <div className="scroll">
           <Dial />
@@ -118,6 +146,8 @@ export default function App() {
           <ul className="menu">
             <li><button onClick={() => setMoreView("shop")}><Icon name="bag" size={22} />
               <span><b>Shop the gaps</b><em>Pieces & colors to buy that work with your closet</em></span><Icon name="chev" size={18} /></button></li>
+            {me?.role === "admin" && <li><button onClick={() => setMoreView("people")}><Icon name="me" size={22} />
+              <span><b>People</b><em>{viewing ? `Viewing ${ownerName}'s closet` : "Add family, or view someone's closet"}</em></span><Icon name="chev" size={18} /></button></li>}
             <li><button onClick={() => setMoreView("punch")}><Icon name="list" size={22} />
               <span><b>Punch list</b><em>Bugs, changes & ideas for Claude to work on</em></span><Icon name="chev" size={18} /></button></li>
             <li><button onClick={signOut}><Icon name="out" size={22} />
@@ -137,7 +167,6 @@ function Splash({ children }) {
     <div className="splash">
       <Dial />
       <img src={`${import.meta.env.BASE_URL}icon-512.png`} alt="" />
-      <span className="eyebrow" style={{ marginTop: 14 }}>Gigi's</span>
       <h1 className="title">Vixen Vault</h1>
       {children}
       <p className="built">App updated {BUILT}</p>

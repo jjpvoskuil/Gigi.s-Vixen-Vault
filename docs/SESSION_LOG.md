@@ -16,7 +16,14 @@ Newest first. One dated entry per working session.
 - Closet heading and sign-in screen now say "Vixen Vault" (was "Velvet Vault"; the design name E2 stays in CSS).
 - John to do: run the two new `alter table public.profile …` lines (or all of schema.sql) in Supabase SQL Editor;
   re-paste `web/supabase/functions/vault-ai/index.ts` into Edge Functions → vault-ai → Deploy.
-- Next: John wants other users with their own closets (per-person data instead of shared).
+- John ran the two `alter table` lines and re-pasted vault-ai (live).
+- Then built one closet per person (branch `multi-user`, merged once John's setup is done): John chose "family I add",
+  "private; admin sees all", "one shared punch list". `owner` column on every table, per-person profile with
+  `wear` (Women's/Men's — Alex is next, then Val), shared built-in styles + personal custom ones, per-person photo
+  folders, More → People (admin: add someone, view their closet, remove), red "Viewing X's closet" bar, screen
+  eyebrow = owner's first name (was hard-coded "Gigi's"), Me → Measurements: Clothes Women's/Men's (Chest, no
+  underbust/bra for men). Existing data migrates to the single non-admin user (Gigi) — run the SQL BEFORE adding Alex.
+- Setup order: schema.sql (whole file) in SQL Editor → re-paste vault-ai → merge `multi-user` to main.
 
 ## 2026-11-10 — Moved hosting from Netlify to GitHub Pages
 - Why: Netlify's free plan is 300 credits/month at 15 per production deploy (~20 deploys); on Deercast they ran out

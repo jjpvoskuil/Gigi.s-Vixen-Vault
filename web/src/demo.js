@@ -46,7 +46,7 @@ export function demoSeed() {
     colors: [], styles: [], seasons: [], favorite: false, times_worn: 0, image_path: "items/demo-u1.jpg", thumb_path: "items/demo-u1_thumb.jpg" });
   photos["items/demo-u1.jpg"] = photos["items/demo-u1_thumb.jpg"] = svg("top", "#6E6466", "#E6E1E0");
   return {
-    users: [{ email: "demo@example.com", name: "Demo", role: "admin" }],
+    users: [{ email: "demo@example.com", name: "Demo", role: "admin" }, { email: "gigi@example.com", name: "Gigi", role: "member" }],
     items, photos,
     profile: { id: 1, measurements: { height: 65.5, bust: 36, waist: 29.5, hips: 39 }, sizes: { tops: "M", bottoms: "8" },
       my_styles: ["Date Night", "Edgy", "Casual Chic"], fit_notes: "", color_notes: "" },

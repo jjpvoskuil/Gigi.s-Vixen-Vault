@@ -1,6 +1,7 @@
 # Notes for Claude (developer)
 
-John (retiree, no coding background) owns this; the app is for his wife Jeanne ("Gigi"). Claude writes all code and
+John (retiree, no coding background) owns this; the app started for his wife Jeanne ("Gigi") and now gives each family
+member (Gigi, their son Alex, later his girlfriend Val) their own closet. Claude writes all code and
 pushes to `main`. John does the setup clicks — explain them one screen at a time and wait for his screenshot.
 He prefers direct, accurate answers.
 
@@ -33,9 +34,13 @@ He prefers direct, accurate answers.
   tags and a script in index.html refuses to run inside a frame. The build time shows on More and the sign-in screen.
   `netlify.toml` is unused (the Netlify project was deleted 2026-11-10 after its free deploy credits ran out); kept so a
   Netlify site could be recreated if ever needed.
-- Supabase project `heqbdsfznchdtknhpgql`: tables `items`, `profile`, `body_photos`, `styles`, `app_users`; private
-  bucket `vault` (`items/…`, `body/…`, `_thumb.jpg` beside each photo). Row-level security: approved emails
-  (`app_users`) see and edit everything; admins manage `app_users`. Schema changes → give John SQL to paste into
+- Supabase project `heqbdsfznchdtknhpgql`: tables `items`, `profile`, `body_photos`, `styles`, `tryons`, `wishlist`,
+  `app_users`. **One closet per person**: every row has `owner` (email, default `me()`); `profile` is keyed by owner
+  (`wear` 'womens'|'mens'); `styles.owner` null = shared built-in list. Row-level security: people see/edit only their
+  own rows; admins (John) see/edit everyone's and manage `app_users` (More → People; "View closet" sets the
+  owner the app works on, kept in localStorage). Private bucket `vault`: new photos under `<folder>/items|body|tryons/…`
+  where folder = `folder_for(email)` (first 16 hex of sha256) — `db.js folderFor()` must match; Gigi's older photos
+  stay at `items/…` etc. and are reachable through `can_see_photo()` (a row of hers uses the path). Schema changes → give John SQL to paste into
   Supabase → SQL Editor (`web/supabase/schema.sql` is re-runnable).
 - Edge Functions are deployed by pasting `web/supabase/functions/<name>/index.ts` (GENERATED — edit `handler.js` /
   `src/lib/*.js`, then `node supabase/build_functions.mjs`; the tests fail if index.ts is stale) into Supabase →
@@ -48,7 +53,11 @@ He prefers direct, accurate answers.
   - `vault-punch` — secret `GITHUB_TOKEN` (Contents read/write on `vixen-vault-data`; it expires — the app then says
     GitHub didn't accept the key). Writes `punch_list.json` + `screenshots/` on that repo's `punch-list` branch
     (`GITHUB_REPO` / `GITHUB_BRANCH` secrets override).
-- `web/src/lib/db.js`: one data API, two backends — Supabase, and `demoDb` (browser-only made-up data, `?demo`).
+- `web/src/lib/db.js`: one data API, two backends — Supabase (`supabaseDb(sb, signedInEmail, ownerEmail)`; every
+  query filters/sets `owner`, and vault-ai calls send `owner`), and `demoDb` (browser-only made-up data, `?demo`).
+- vault-ai works on `body.owner` (default the signed-in person; others need `is_admin()`). Men's closets:
+  `ai.wearRequest()` rewrites the woman-worded prompts (she/her → he/his/him, bust → chest) and adds "menswear only";
+  women's prompts stay byte-identical, so the Python parity fixtures still hold.
 - Rules ported from Python are parity-tested: `web/reference/*.py` → `web/supabase/make_fixtures.py` → `*.fixtures.json`.
 - Backups: private repo `vixen-vault-data` (GitHub Actions Mon & Thu; restore via `web/supabase/make_restore.py`).
 - Phone-first: test at 390×844 with Playwright (`?demo`). Pop-up sheets render through a portal on `document.body`

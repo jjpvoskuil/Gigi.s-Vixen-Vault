@@ -358,9 +358,10 @@ export function sizeFor(category, sizes = {}) {
 }
 
 /** A Google Shopping search for the piece, in her size when we know it. */
-export function shopLink(search, category, sizes) {
+export function shopLink(search, category, sizes, wear = "womens") {
   const size = sizeFor(category, sizes);
-  const q = [search, /\bwomen'?s?\b/i.test(search) ? "" : "women", size && `size ${size}`].filter(Boolean).join(" ");
+  const who = wear === "mens" ? "men" : "women";
+  const q = [search, new RegExp(`\\b${who}'?s?\\b`, "i").test(search) ? "" : who, size && `size ${size}`].filter(Boolean).join(" ");
   return `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(q)}`;
 }
 
@@ -611,4 +612,36 @@ export function readComplete(data, usable, starts = []) {
     piece: String(x.piece).trim(), category: CATEGORIES.includes(x.category) ? x.category : "accessory", why: x.why || "",
     search: String(x.search || x.piece).trim() }));
   return { looks, shopping };
+}
+
+// ---------------------------------------------------------------- menswear (profile.wear = "mens")
+// The prompts are written for a woman (and parity-tested that way). For a man's closet they are rewritten
+// word by word; "womens" (the default) leaves every prompt byte-for-byte unchanged.
+// "her" as an object ("suit her.", "wash her out", "flatter her most") → him; otherwise possessive → his.
+const HIM = /\bher\b(?=[.,;:!?)]|\s*$|\s+(?:and|or|most|best|exactly|to|out|the|well|more|up|off)\b)/gm;
+export function forWear(text, wear) {
+  if (wear !== "mens") return text;
+  return text
+    .replace(HIM, "him")
+    .replace(/\bherself\b/g, "himself").replace(/\bHerself\b/g, "Himself")
+    .replace(/\bher\b/g, "his").replace(/\bHer\b/g, "His")
+    .replace(/\bSHE\b/g, "HE").replace(/\bHER$/gm, "HIM").replace(/\bHER\b/g, "HIS").replace(/\bbust\b/g, "chest")
+    .replace(/\bshe's\b/g, "he's").replace(/\bShe's\b/g, "He's")
+    .replace(/\bshe\b/g, "he").replace(/\bShe\b/g, "He")
+    .replace(/\bwoman's\b/g, "man's").replace(/\bwoman\b/g, "man").replace(/\bWoman\b/g, "Man")
+    .replace(/\bwomen\b/g, "men").replace(/\bWomen\b/g, "Men");
+}
+const wearOf = (p) => (p && p.wear === "mens" ? "mens" : "womens");
+
+/** Rewrites the text parts of a Claude request for a man's closet (no-op for "womens"). */
+export function wearRequest(req, profile) {
+  const wear = wearOf(profile);
+  if (wear === "womens") return req;
+  const r = JSON.parse(JSON.stringify(req));
+  for (const m of r.messages) {
+    if (typeof m.content === "string") m.content = forWear(m.content, wear) + "\nHe is a man: suggest menswear only.";
+    else { for (const c of m.content) if (c.type === "text") c.text = forWear(c.text, wear); m.content.push({ type: "text", text: "He is a man: suggest menswear only." }); }
+  }
+  for (const t of r.tools || []) t.description = forWear(t.description, wear);
+  return r;
 }

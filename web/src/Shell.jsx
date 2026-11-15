@@ -17,7 +17,11 @@ export function Dial() {
   );
 }
 
-export function Head({ eyebrow = "Gigi's", title, sub, children }) {
+// Whose closet the screens are showing ("Gigi's", "Alex's") — App sets it before rendering a screen.
+let OWNER_LABEL = "";
+export const setOwnerLabel = (name) => { OWNER_LABEL = name ? `${name}'s` : ""; };
+
+export function Head({ eyebrow = OWNER_LABEL, title, sub, children }) {
   return (
     <header className="head">
       <div className="titles">

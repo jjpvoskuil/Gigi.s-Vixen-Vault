@@ -139,7 +139,7 @@ export default function ShopScreen({ db, items, styles, profile, result, setResu
                     <Pairs ids={s.pairs_with} />
                     {s.new_looks > 0 && <p className="unlocks">≈ {s.new_looks} new look{s.new_looks === 1 ? "" : "s"}</p>}
                     <div className="actions">
-                      <a className="btn" href={shopLink(s.search, s.category, profile.sizes)} target="_blank" rel="noopener noreferrer"><Icon name="search" size={18} />Search online</a>
+                      <a className="btn" href={shopLink(s.search, s.category, profile.sizes, profile.wear)} target="_blank" rel="noopener noreferrer"><Icon name="search" size={18} />Search online</a>
                       {onList(s.piece)
                         ? <button className="btn" disabled><Icon name="check" size={18} />On my list</button>
                         : <button className="btn dark" onClick={() => addToList(s)}><Icon name="heart" size={18} />Add to list</button>}
@@ -165,7 +165,7 @@ export default function ShopScreen({ db, items, styles, profile, result, setResu
                 {w.why && <p>{w.why}</p>}
                 <Pairs ids={w.pairs_with} />
                 <div className="actions">
-                  <a className="btn" href={shopLink(w.search || w.piece, w.category, profile.sizes)} target="_blank" rel="noopener noreferrer"><Icon name="search" size={18} />Search online</a>
+                  <a className="btn" href={shopLink(w.search || w.piece, w.category, profile.sizes, profile.wear)} target="_blank" rel="noopener noreferrer"><Icon name="search" size={18} />Search online</a>
                   <button className="btn primary" onClick={() => setStatus(w, "bought", "Nice! Add it to the vault when it arrives")}><Icon name="check" size={18} />Bought it</button>
                 </div>
               </li>

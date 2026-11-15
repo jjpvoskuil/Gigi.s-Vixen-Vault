@@ -8,7 +8,8 @@ import { makeHandler } from "./functions/vault-ai/handler.js";
 import { buildVaultAi } from "./build_functions.mjs";
 
 // ---- a tiny stand-in for supabase-js (query builder + storage + rpc)
-function fakeSupabase(db, { approved = true, photo = new Uint8Array([1, 2, 3]) } = {}) {
+const ME = "gigi@example.com";
+function fakeSupabase(db, { approved = true, photo = new Uint8Array([1, 2, 3]), me = ME, admin = false } = {}) {
   const calls = [];
   const q = (table) => {
     const st = { table, filters: [], op: "select", row: null, single: false };
@@ -21,6 +22,11 @@ function fakeSupabase(db, { approved = true, photo = new Uint8Array([1, 2, 3]) }
       select() { return b; }, order() { return b; }, eq(k, v) { st.filters.push([k, v]); return b; },
       in(k, vs) { st.ins = [k, vs]; return b; },
       update(row) { st.op = "update"; st.row = row; return b; }, maybeSingle() { st.single = true; return b; },
+      upsert(row, { onConflict } = {}) {
+        const rows = (db[table] ||= []); const hit = rows.find((r) => r[onConflict] === row[onConflict]);
+        if (hit) Object.assign(hit, row); else rows.push({ ...row });
+        calls.push(["upsert", table, row]); st.filters.push(["__none", 1]); return b;
+      },
       then(res, rej) { return Promise.resolve(run()).then(res, rej); },
     };
     return b;
@@ -28,7 +34,7 @@ function fakeSupabase(db, { approved = true, photo = new Uint8Array([1, 2, 3]) }
   return {
     calls, client: () => ({
       from: q,
-      rpc: async (name) => ({ data: name === "is_approved" ? approved : null, error: null }),
+      rpc: async (name) => ({ data: { is_approved: approved, me, is_admin: admin }[name] ?? null, error: null }),
       storage: { from: () => ({ download: async (p) => ({ data: new Blob([photo], { type: "image/jpeg" }), error: null }) }) },
     }),
   };
@@ -45,15 +51,18 @@ const anthropic = (answers, log = []) => async (url, init) => {
 };
 const toolUse = (name, input) => ({ content: [{ type: "tool_use", name, input }] });
 
-function closet() {
-  return {
+function closet(owner = ME) {
+  const own = (rows) => rows.map((r) => ({ owner, ...r }));
+  const db = {
     items: [
       { id: "u1", name: "New item", description: "black top from Target", brand: "Target", notes: "", image_path: "items/u1.jpg", category: "other" },
       ...Array.from({ length: 5 }, (_, n) => ({ id: `t${n}`, name: `Piece ${n}`, description: "ok", category: "top", colors: ["red"] })),
     ],
     styles: [{ name: "Edgy", description: "Leather", sort_order: 1 }, { name: "Boho", description: "", sort_order: 2 }],
-    profile: [{ id: 1, measurements: { bust: 36 }, sizes: {}, my_styles: ["Edgy"] }],
+    profile: [{ owner: ME, measurements: { bust: 36 }, sizes: {}, my_styles: ["Edgy"] }],
   };
+  for (const t of ["items", "profile"]) db[t] = own(db[t]);
+  return db;
 }
 
 test("must be signed in and approved", async () => {
@@ -130,10 +139,10 @@ const gem = (answers, log = []) => async (url, init) => {
 const picture = { candidates: [{ content: { parts: [{ text: "here" }, { inlineData: { mimeType: "image/png", data: "UE5H" } }] }, finishReason: "STOP" }] };
 function wardrobe() {
   const c = closet();
-  c.items.push({ id: "shoe", name: "Buckled stilettos", category: "shoes", image_path: "items/shoe.jpg", primary_color: "black" },
+  c.items.push(...[{ id: "shoe", name: "Buckled stilettos", category: "shoes", image_path: "items/shoe.jpg", primary_color: "black" },
     { id: "top", name: "Lace bodysuit", category: "top", image_path: "items/top.jpg", pattern: "lace" },
-    { id: "jeans", name: "Wet-look leggings", category: "bottom", image_path: "items/jeans.jpg" });
-  c.body_photos = [{ id: "b1", label: "Front", image_path: "body/b1.jpg" }];
+    { id: "jeans", name: "Wet-look leggings", category: "bottom", image_path: "items/jeans.jpg" }].map((r) => ({ owner: ME, ...r })));
+  c.body_photos = [{ id: "b1", owner: ME, label: "Front", image_path: "body/b1.jpg" }];
   return c;
 }
 
@@ -211,7 +220,8 @@ test("shop action: uses described pieces only, returns ids", async () => {
 
 // ---------------------------------------------------------------- style guide + build an outfit
 test("guide: sends the face + front photos and saves the guide on her profile", async () => {
-  const db = closet(); db.body_photos = [{ id: "b1", label: "Front", image_path: "body/f.jpg" }, { id: "b2", label: "Face", image_path: "body/x.jpg" }];
+  const db = closet(); db.body_photos = [{ id: "b1", owner: ME, label: "Front", image_path: "body/f.jpg" }, { id: "b2", owner: ME, label: "Face", image_path: "body/x.jpg" },
+    { id: "b3", owner: "alex@example.com", label: "Face", image_path: "x/body/a.jpg" }];
   db.profile[0].measurements = { bust: 36, waist: 28, hips: 38 };
   const sb = fakeSupabase(db), log = [];
   const h = makeHandler({ createClient: sb.client, fetchFn: anthropic([toolUse("record_style_guide", {
@@ -252,4 +262,41 @@ test("complete: undescribed piece or nothing picked → friendly 400", async () 
   assert.match((await r.json()).error, /Describe/);
   r = await h(post({ action: "complete", item_ids: [] }));
   assert.equal(r.status, 400);
+});
+
+// ---------------------------------------------------------------- one closet per person
+test("each person only reaches their own closet; admins may name another owner", async () => {
+  const db = closet();
+  db.items.push(...Array.from({ length: 4 }, (_, n) => ({ id: `a${n}`, owner: "alex@example.com", name: `Alex ${n}`, description: "ok", category: "top" })));
+  db.profile.push({ owner: "alex@example.com", wear: "mens", measurements: {}, sizes: {}, my_styles: [] });
+  const answer = () => toolUse("propose_outfits", { outfits: [{ title: "X", items: [1], why: "", tip: "", add_piece: "" }], closet_gaps: [] });
+  // Gigi: her pieces only, and she can't ask for Alex's
+  let log = [];
+  let h = makeHandler({ createClient: fakeSupabase(db).client, fetchFn: anthropic([answer()], log), env: env(), ai });
+  let r = await h(post({ action: "outfits", style: "Edgy" }));
+  assert.deepEqual((await r.json()).outfits[0].items, ["t0"]);
+  assert.doesNotMatch(log[0].messages[0].content, /Alex/);
+  r = await h(post({ action: "outfits", style: "Edgy", owner: "alex@example.com" }));
+  assert.equal(r.status, 403);
+  // John (admin) viewing Alex's closet: Alex's pieces, menswear wording
+  log = [];
+  h = makeHandler({ createClient: fakeSupabase(db, { me: "john@example.com", admin: true }).client, fetchFn: anthropic([answer()], log), env: env(), ai });
+  r = await h(post({ action: "outfits", style: "Edgy", owner: "Alex@example.com" }));
+  assert.deepEqual((await r.json()).outfits[0].items, ["a0"]);
+  const text = log[0].messages[0].content;
+  assert.match(text, /helping a man put together outfits from his own closet/);
+  assert.match(text, /He is a man: suggest menswear only\.$/);
+  assert.doesNotMatch(text, /\b(she|her|woman)\b/);
+});
+
+test("menswear rewrite leaves women's prompts untouched", () => {
+  const req = ai.tagRequest("IMG", [], "m");
+  assert.equal(ai.wearRequest(req, {}), req);
+  assert.equal(ai.wearRequest(req, { wear: "womens" }), req);
+  const men = ai.wearRequest(req, { wear: "mens" });
+  assert.match(men.messages[0].content[1].text, /one item from a man's closet/);
+  assert.equal(ai.forWear("Respect her colors and flatter her figure; she loves it.", "mens"), "Respect his colors and flatter his figure; he loves it.");
+  assert.equal(ai.forWear("Colors that wash her out or suit her best. Dress her the way it fits her.", "mens"),
+    "Colors that wash him out or suit him best. Dress him the way it fits him.");
+  assert.equal(ai.shopLink("chinos", "bottom", { bottoms: "32" }, "mens"), "https://www.google.com/search?tbm=shop&q=chinos%20men%20size%2032");
 });

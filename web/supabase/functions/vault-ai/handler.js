@@ -7,7 +7,9 @@
 //   POST {action:"tryon", body_photo_id, item_ids}           → {image, mime}: her photo wearing those pieces
 //        (Google Gemini image model; key GEMINI_API_KEY, model GEMINI_IMAGE_MODEL — the app saves the result)
 // Runs as the signed-in person (their sign-in token), so the database's row-level security applies: only
-// approved people can read photos or change items. Logic lives in src/lib/ai.js (parity-tested vs Python).
+// approved people can read photos or change items. Each person has their own closet (column "owner"); every
+// action works on body.owner (default: the signed-in person) — only an admin may name someone else.
+// profile.wear = "mens" rewrites the prompts for a man's closet (ai.wearRequest). Logic lives in src/lib/ai.js (parity-tested vs Python).
 // build_functions.mjs inlines ai.js + this file into index.ts (one file you can paste into the dashboard).
 
 export function makeHandler({ createClient, fetchFn, env, ai }) {
@@ -66,16 +68,29 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
 
   const ok = (r) => { if (r.error) throw new Friendly(r.error.message, 400); return r.data; };
 
-  async function describe(sb, body) {
-    const item = ok(await sb.from("items").select("*").eq("id", body.item_id).maybeSingle());
+  /** Whose closet this request is about: the signed-in person, or (admins only) body.owner. */
+  async function whose(sb, body) {
+    const me = String(ok(await sb.rpc("me")) || "").toLowerCase();
+    const owner = String(body.owner || me).trim().toLowerCase();
+    if (owner !== me && !ok(await sb.rpc("is_admin"))) throw new Friendly("Only an admin can do that for someone else's closet.", 403);
+    return owner;
+  }
+  const profileOf = async (sb, owner) => ok(await sb.from("profile").select("*").eq("owner", owner).maybeSingle()) || { owner };
+  const stylesOf = async (sb, owner) => ok(await sb.from("styles").select("*").order("sort_order").order("name")).filter((s) => !s.owner || s.owner === owner);
+  const itemsOf = async (sb, owner) => ok(await sb.from("items").select("*").eq("owner", owner).order("created_at", { ascending: false }));
+  const askFor = (req, profile, tool) => ask(ai.wearRequest(req, profile), tool);
+
+  async function describe(sb, body, owner) {
+    const item = ok(await sb.from("items").select("*").eq("id", body.item_id).eq("owner", owner).maybeSingle());
     if (!item) throw new Friendly("That item wasn't found.", 404);
     if (!item.image_path) throw new Friendly("That item has no photo.", 400);
-    const styles = ok(await sb.from("styles").select("name").order("sort_order").order("name")).map((s) => s.name);
+    const [styleRows, profile] = await Promise.all([stylesOf(sb, owner), profileOf(sb, owner)]);
+    const styles = styleRows.map((s) => s.name);
     const dl = await sb.storage.from("vault").download(item.image_path);
     if (dl.error) throw new Friendly(`Couldn't open the photo: ${dl.error.message}`, 400);
     const bytes = new Uint8Array(await dl.data.arrayBuffer());
     const type = /^image\/(jpeg|png|webp|gif)$/.test(dl.data.type) ? dl.data.type : "image/jpeg";
-    const fields = ai.cleanTag(await ask(ai.tagRequest(b64(bytes), styles, model(), type), "record_item"));
+    const fields = ai.cleanTag(await askFor(ai.tagRequest(b64(bytes), styles, model(), type), profile, "record_item"));
     const row = { ...ai.mergeDescribe(item, fields), updated_at: new Date().toISOString() };
     const saved = ok(await sb.from("items").update(row).eq("id", item.id).select("*").maybeSingle());
     return { item: saved };
@@ -114,81 +129,64 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
     return { b64: b64(new Uint8Array(await dl.data.arrayBuffer())), mime };
   }
 
-  async function tryon(sb, body) {
+  async function tryon(sb, body, owner) {
     const ids = [...new Set((body.item_ids || []).map(String))];
     if (!ids.length) throw new Friendly("Pick at least one piece to try on.", 400);
     if (ids.length > 8) throw new Friendly("That's a lot of pieces — try on 8 or fewer at a time.", 400);
-    const photo = ok(await sb.from("body_photos").select("*").eq("id", body.body_photo_id).maybeSingle());
+    const photo = ok(await sb.from("body_photos").select("*").eq("id", body.body_photo_id).eq("owner", owner).maybeSingle());
     if (!photo) throw new Friendly("Add a body photo first (Me → Body photos).", 400);
-    const found = ok(await sb.from("items").select("*").in("id", ids));
+    const found = ok(await sb.from("items").select("*").eq("owner", owner).in("id", ids));
+    const profile = await profileOf(sb, owner);
     const items = ai.tryonOrder(found.filter((i) => i.image_path));
     if (!items.length) throw new Friendly("Those pieces have no photos.", 400);
     const [bodyImg, ...itemImgs] = await Promise.all([photoB64(sb, photo.image_path), ...items.map((i) => photoB64(sb, i.image_path))]);
-    const res = ai.readImage(await gemini(ai.tryonRequest(ai.tryonPrompt(items), bodyImg, itemImgs, body.size === "2K" ? "2K" : "1K")));
+    const res = ai.readImage(await gemini(ai.tryonRequest(ai.forWear(ai.tryonPrompt(items), profile.wear), bodyImg, itemImgs, body.size === "2K" ? "2K" : "1K")));
     if (res.blocked) throw new Friendly(/safety|prohibited|blocklist|spii|other|image_/i.test(res.blocked) ? BLOCKED : "Google didn't return a picture this time — please try again.", 422);
     return { image: res.image, mime: res.mime, item_ids: items.map((i) => i.id) };
   }
 
-  async function shop(sb, body) {
-    const [items, prof, styles] = await Promise.all([
-      sb.from("items").select("*").order("created_at", { ascending: false }),
-      sb.from("profile").select("*").eq("id", 1).maybeSingle(),
-      sb.from("styles").select("name,description"),
-    ]);
-    const usable = ok(items).filter((i) => !ai.isUntagged(i));
+  async function shop(sb, body, owner) {
+    const [items, profile, styles] = await Promise.all([itemsOf(sb, owner), profileOf(sb, owner), stylesOf(sb, owner)]);
+    const usable = items.filter((i) => !ai.isUntagged(i));
     if (usable.length < 4) throw new Friendly("Describe a few more pieces first — suggestions need at least 4 described items.", 400);
     const style = String(body.style || "").trim();
     const opts = {
-      style, styleDesc: style ? (body.style_desc ?? (ok(styles).find((s) => s.name === style)?.description || "")) : "",
+      style, styleDesc: style ? (body.style_desc ?? (styles.find((s) => s.name === style)?.description || "")) : "",
       occasion: String(body.occasion || ""), season: String(body.season || ""), budget: String(body.budget || ""),
       count: Math.min(8, Math.max(2, parseInt(body.count, 10) || 6)),
     };
-    const res = ai.readShop(await ask(ai.shopRequest(usable, ok(prof) || {}, opts, model()), "suggest_purchases"), usable);
+    const res = ai.readShop(await askFor(ai.shopRequest(usable, profile, opts, model()), profile, "suggest_purchases"), usable);
     return { ...res, suggestions: res.suggestions.map((s) => ({ ...s, pairs_with: s.pairs_with.map((i) => i.id) })) };
   }
 
-  async function outfits(sb, body) {
-    const [items, prof, styles] = await Promise.all([
-      sb.from("items").select("*").order("created_at", { ascending: false }),
-      sb.from("profile").select("*").eq("id", 1).maybeSingle(),
-      sb.from("styles").select("name,description"),
-    ]);
-    const usable = ok(items).filter((i) => !ai.isUntagged(i));
+  async function outfits(sb, body, owner) {
+    const [items, profile, styles] = await Promise.all([itemsOf(sb, owner), profileOf(sb, owner), stylesOf(sb, owner)]);
+    const usable = items.filter((i) => !ai.isUntagged(i));
     if (usable.length < 4) throw new Friendly("Describe a few more pieces first — outfits need at least 4 described items.", 400);
     const style = String(body.style || "").trim();
     if (!style) throw new Friendly("Pick a style first.", 400);
-    const desc = body.style_desc ?? (ok(styles).find((s) => s.name === style)?.description || "");
+    const desc = body.style_desc ?? (styles.find((s) => s.name === style)?.description || "");
     const count = Math.min(6, Math.max(1, parseInt(body.count, 10) || 4));
-    const req = ai.outfitRequest(usable, ok(prof) || {}, style, desc, String(body.occasion || ""), String(body.season || ""), count, model());
-    const res = ai.readOutfits(await ask(req, "propose_outfits"), usable);
+    const req = ai.outfitRequest(usable, profile, style, desc, String(body.occasion || ""), String(body.season || ""), count, model());
+    const res = ai.readOutfits(await askFor(req, profile, "propose_outfits"), usable);
     return { outfits: res.outfits.map((o) => ({ ...o, items: o.items.map((i) => i.id) })), closet_gaps: res.closet_gaps };
   }
 
-  async function guide(sb) {
-    const [prof, styles, photos] = await Promise.all([
-      sb.from("profile").select("*").eq("id", 1).maybeSingle(),
-      sb.from("styles").select("name,description").order("sort_order").order("name"),
-      sb.from("body_photos").select("*").order("created_at"),
-    ]);
-    const profile = ok(prof) || {};
-    const ps = ok(photos);
+  async function guide(sb, body, owner) {
+    const [profile, styles, ps] = await Promise.all([profileOf(sb, owner), stylesOf(sb, owner),
+      sb.from("body_photos").select("*").eq("owner", owner).order("created_at").then(ok)]);
     // A face close-up for coloring (if she has one) and a front photo for proportions.
     const pick = [ps.find((p) => p.label === "Face"), ps.find((p) => p.label === "Front") || ps.find((p) => p.label !== "Face")].filter(Boolean);
     const m = profile.measurements || {};
     if (!pick.length && !(m.bust && m.waist && m.hips)) throw new Friendly("Add your bust, waist and hip measurements or a body photo first.", 400);
     const imgs = await Promise.all(pick.map(async (p) => ({ label: p.label, ...(await photoB64(sb, p.image_path)) })));
-    const g = ai.readGuide(await ask(ai.guideRequest(profile, ok(styles), imgs, model()), "record_style_guide"));
-    ok(await sb.from("profile").update({ guide: g, updated_at: new Date().toISOString() }).eq("id", 1));
+    const g = ai.readGuide(await askFor(ai.guideRequest(profile, styles, imgs, model()), profile, "record_style_guide"));
+    ok(await sb.from("profile").upsert({ owner, guide: g, updated_at: new Date().toISOString() }, { onConflict: "owner" }));
     return { guide: g };
   }
 
-  async function complete(sb, body) {
-    const [items, prof, styles] = await Promise.all([
-      sb.from("items").select("*").order("created_at", { ascending: false }),
-      sb.from("profile").select("*").eq("id", 1).maybeSingle(),
-      sb.from("styles").select("name,description"),
-    ]);
-    const all = ok(items);
+  async function complete(sb, body, owner) {
+    const [all, profile, styles] = await Promise.all([itemsOf(sb, owner), profileOf(sb, owner), stylesOf(sb, owner)]);
     const usable = all.filter((i) => !ai.isUntagged(i));
     const ids = [...new Set((body.item_ids || []).map(String))].slice(0, 6);
     const waiting = all.filter((i) => ids.includes(String(i.id)) && ai.isUntagged(i));
@@ -198,9 +196,9 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
     if (!starts.length && !idea) throw new Friendly("Pick a piece or two, or describe your idea.", 400);
     if (usable.length < 2) throw new Friendly("Describe a few more pieces first.", 400);
     const style = String(body.style || "").trim();
-    const opts = { idea, style, styleDesc: style ? (ok(styles).find((s) => s.name === style)?.description || "") : "",
+    const opts = { idea, style, styleDesc: style ? (styles.find((s) => s.name === style)?.description || "") : "",
       occasion: String(body.occasion || ""), season: String(body.season || ""), count: Math.min(3, Math.max(1, parseInt(body.count, 10) || 2)) };
-    const res = ai.readComplete(await ask(ai.completeRequest(usable, ok(prof) || {}, starts, opts, model()), "complete_outfit"), usable, starts);
+    const res = ai.readComplete(await askFor(ai.completeRequest(usable, profile, starts, opts, model()), profile, "complete_outfit"), usable, starts);
     return {
       looks: res.looks.map((o) => ({ ...o, items: o.items.map((i) => i.id), accessories: o.accessories.map((a) => ({ idea: a.idea, item_id: a.item?.id || null })) })),
       shopping: res.shopping,
@@ -217,13 +215,10 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
       const approved = ok(await sb.rpc("is_approved"));
       if (!approved) return reply(403, { error: "This account isn't on the Vixen Vault list." });
       const body = await req.json().catch(() => ({}));
-      if (body.action === "describe") return reply(200, await describe(sb, body));
-      if (body.action === "outfits") return reply(200, await outfits(sb, body));
-      if (body.action === "shop") return reply(200, await shop(sb, body));
-      if (body.action === "guide") return reply(200, await guide(sb));
-      if (body.action === "complete") return reply(200, await complete(sb, body));
-      if (body.action === "tryon") return reply(200, await tryon(sb, body));
-      return reply(400, { error: "Unknown action" });
+      const fns = { describe, outfits, shop, tryon, guide, complete };
+      const fn = Object.hasOwn(fns, body.action) ? fns[body.action] : null;
+      if (!fn) return reply(400, { error: "Unknown action" });
+      return reply(200, await fn(sb, body, await whose(sb, body)));
     } catch (e) {
       return reply(e.status || 500, { error: e.message || String(e) });
     }

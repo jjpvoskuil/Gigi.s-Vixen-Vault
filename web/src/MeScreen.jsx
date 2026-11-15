@@ -50,8 +50,9 @@ function Measurements({ profile, save }) {
     ft: m.height ? String(Math.floor(m.height / 12)) : "", inch: m.height ? str(+(m.height % 12).toFixed(2)) : "", weight: str(m.weight),
     ...Object.fromEntries(MEASUREMENTS.map(([k]) => [k, str(m[k])])),
     ...Object.fromEntries(SIZES.map(([k]) => [`size_${k}`, str((profile.sizes || {})[k])])),
-    fit_notes: profile.fit_notes || "", color_notes: profile.color_notes || "",
+    fit_notes: profile.fit_notes || "", color_notes: profile.color_notes || "", wear: profile.wear === "mens" ? "mens" : "womens",
   }));
+  const mens = f.wear === "mens";
   const [busy, setBusy] = useState(false);
   const [help, setHelp] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -65,12 +66,15 @@ function Measurements({ profile, save }) {
     const sizes = {};
     for (const [k] of SIZES) { const v = f[`size_${k}`].trim(); if (v) sizes[k] = v; }
     setBusy(true);
-    await save((d) => d.saveProfile({ measurements: meas, sizes, fit_notes: f.fit_notes.trim(), color_notes: f.color_notes.trim() }), "Saved");
+    await save((d) => d.saveProfile({ measurements: meas, sizes, fit_notes: f.fit_notes.trim(), color_notes: f.color_notes.trim(), wear: f.wear }), "Saved");
     setBusy(false);
   }
 
   return (
     <div className="pad">
+      <div className="field"><span>Clothes</span>
+        <div className="pills">{[["womens", "Women's"], ["mens", "Men's"]].map(([v, l]) => <button key={v} className={`pill ${f.wear === v ? "on" : ""}`} onClick={() => setF({ ...f, wear: v })}>{l}</button>)}</div>
+      </div>
       <p className="small muted">Inches. Soft tape, snug but not tight, over light clothing. Leave anything blank you don't know yet.
         {" "}<button className="link" onClick={() => setHelp(!help)}>{help ? "Hide how-to" : "How to measure"}</button></p>
       <div className="row3">
@@ -79,8 +83,8 @@ function Measurements({ profile, save }) {
         <label className="field"><span>Weight lb</span><input className="in" inputMode="numeric" value={f.weight} onChange={set("weight")} placeholder="optional" /></label>
       </div>
       <div className="row2">
-        {MEASUREMENTS.map(([k, label, hint]) => (
-          <label key={k} className="field"><span>{label}</span>
+        {MEASUREMENTS.filter(([k]) => !(mens && k === "underbust")).map(([k, label, hint]) => (
+          <label key={k} className="field"><span>{mens && k === "bust" ? "Chest" : label}</span>
             <input className="in" inputMode="decimal" value={f[k]} onChange={set(k)} />
             {help && <em className="hint">{hint}</em>}
           </label>
@@ -88,7 +92,7 @@ function Measurements({ profile, save }) {
       </div>
       <h3 className="minor">Usual sizes</h3>
       <div className="row3">
-        {SIZES.map(([k, label, ph]) => (
+        {SIZES.filter(([k]) => !(mens && k === "bra")).map(([k, label, ph]) => (
           <label key={k} className="field"><span>{label}</span><input className="in" value={f[`size_${k}`]} onChange={set(`size_${k}`)} placeholder={ph} /></label>
         ))}
       </div>
