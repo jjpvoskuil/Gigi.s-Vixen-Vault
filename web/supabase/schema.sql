@@ -25,6 +25,9 @@ create table if not exists public.profile (
   measurements jsonb not null default '{}'::jsonb, sizes jsonb not null default '{}'::jsonb,
   my_styles text[] default '{}', fit_notes text default '', color_notes text default '');
 insert into public.profile (id) values (1) on conflict (id) do nothing;
+-- 2026-11-15: her own coloring notes (hair, eyes, skin…) and the AI style guide (colors, shape, styles)
+alter table public.profile add column if not exists coloring jsonb not null default '{}'::jsonb;
+alter table public.profile add column if not exists guide jsonb not null default '{}'::jsonb;
 
 create table if not exists public.body_photos (
   id uuid primary key default gen_random_uuid(), created_at timestamptz not null default now(),

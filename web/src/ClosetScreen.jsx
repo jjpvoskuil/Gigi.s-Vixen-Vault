@@ -44,7 +44,7 @@ export default function ClosetScreen({ db, items, styles, onSave, onDelete, onDe
   return (
     <div className="scroll">
       <Dial />
-      <Head title="Velvet Vault" sub={`${items.length} pieces · kept under lock & key`}>
+      <Head title="Vixen Vault" sub={`${items.length} pieces · kept under lock & key`}>
         <button className={`round ${searching ? "on" : ""}`} aria-label="Search" onClick={() => { setSearching(!searching); if (searching) setQ(""); }}>
           <Icon name="search" size={20} />
         </button>

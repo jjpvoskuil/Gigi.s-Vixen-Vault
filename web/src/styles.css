@@ -335,3 +335,41 @@ a.btn { color: var(--text); text-decoration: none; }
 /* build stamp (More + sign-in screen) */
 .built { position: relative; margin: 18px 20px 0; text-align: center; font-size: 12px; color: var(--muted); }
 .splash .built { margin-top: 26px; }
+
+/* ------------------------------------------------------------ Me → Colors & shape */
+.look.guide { margin: 14px 0 0; }
+.look .kick { position: relative; display: block; margin: 14px 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--hot); }
+.look .kick:first-of-type { margin-top: 0; }
+.look.guide h3 { margin-bottom: 4px; }
+.swatches { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 8px; margin: 10px 0 4px; }
+.sw { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; font-size: 11px; line-height: 1.2; color: var(--on-leather-muted); }
+.sw i { width: 46px; height: 46px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255, 255, 255, .25), 0 3px 8px rgba(0, 0, 0, .4); }
+.sw b { color: var(--on-leather); font-weight: 500; font-size: 12px; }
+.sw em { font-style: normal; }
+.sw.off i { position: relative; opacity: .8; }
+.sw.off i::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: var(--hot); transform: rotate(45deg); }
+.guideform { margin-top: 6px; }
+.suited { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.suited li { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
+.suited li > div { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.suited .newtag { font-style: normal; margin-left: 6px; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+
+/* ------------------------------------------------------------ Unlock → Build an outfit */
+.startstrip { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+.startstrip::-webkit-scrollbar { display: none; }
+.lookpiece.light { color: var(--muted); }
+.lookpiece.light .well { background: var(--tile); }
+.addtile .well { display: grid; place-items: center; border: 2px dashed var(--line); color: var(--accent); }
+.lookpiece .x { position: absolute; top: 6px; right: 6px; z-index: 2; width: 24px; height: 24px; border-radius: 50%; background: rgba(20, 13, 15, .7);
+  color: #fff; display: grid; place-items: center; }
+.lookpiece .x .icon { stroke: #fff; }
+.pickgrid { padding: 12px 0 90px; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 10px; }
+.pickgrid .piece .name { font-size: 12px; }
+.pickbar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 0 -20px; padding: 12px 20px calc(12px + var(--safe-bottom)); background: var(--page); border-top: 1px solid var(--line); }
+.look .finish { position: relative; margin: 8px 0 4px; font-size: 13px; color: var(--on-leather-muted); }
+.look .finish > b { color: var(--hot); font-weight: 600; text-transform: uppercase; letter-spacing: .12em; font-size: 11px; }
+.look .finish ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.look .finish .own { display: inline-flex; align-items: center; gap: 8px; color: var(--on-leather); font-size: 13px; text-align: left; }
+.look .finish .own img { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
+.look .finish .own em { font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--hot); }

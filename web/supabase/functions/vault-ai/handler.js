@@ -2,6 +2,8 @@
 //   POST {action:"describe", item_id}                       → AI-describes one closet photo and saves it
 //   POST {action:"outfits", style, style_desc, occasion, season, count} → outfits from her closet
 //   POST {action:"shop", style, style_desc, occasion, season, budget, count} → what to buy next
+//   POST {action:"guide"}                                     → {guide}: her colors + body shape + styles, saved on her profile
+//   POST {action:"complete", item_ids, idea, style, occasion, season, count} → {looks, shopping}: finish & accessorize her outfit
 //   POST {action:"tryon", body_photo_id, item_ids}           → {image, mime}: her photo wearing those pieces
 //        (Google Gemini image model; key GEMINI_API_KEY, model GEMINI_IMAGE_MODEL — the app saves the result)
 // Runs as the signed-in person (their sign-in token), so the database's row-level security applies: only
@@ -162,6 +164,49 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
     return { outfits: res.outfits.map((o) => ({ ...o, items: o.items.map((i) => i.id) })), closet_gaps: res.closet_gaps };
   }
 
+  async function guide(sb) {
+    const [prof, styles, photos] = await Promise.all([
+      sb.from("profile").select("*").eq("id", 1).maybeSingle(),
+      sb.from("styles").select("name,description").order("sort_order").order("name"),
+      sb.from("body_photos").select("*").order("created_at"),
+    ]);
+    const profile = ok(prof) || {};
+    const ps = ok(photos);
+    // A face close-up for coloring (if she has one) and a front photo for proportions.
+    const pick = [ps.find((p) => p.label === "Face"), ps.find((p) => p.label === "Front") || ps.find((p) => p.label !== "Face")].filter(Boolean);
+    const m = profile.measurements || {};
+    if (!pick.length && !(m.bust && m.waist && m.hips)) throw new Friendly("Add your bust, waist and hip measurements or a body photo first.", 400);
+    const imgs = await Promise.all(pick.map(async (p) => ({ label: p.label, ...(await photoB64(sb, p.image_path)) })));
+    const g = ai.readGuide(await ask(ai.guideRequest(profile, ok(styles), imgs, model()), "record_style_guide"));
+    ok(await sb.from("profile").update({ guide: g, updated_at: new Date().toISOString() }).eq("id", 1));
+    return { guide: g };
+  }
+
+  async function complete(sb, body) {
+    const [items, prof, styles] = await Promise.all([
+      sb.from("items").select("*").order("created_at", { ascending: false }),
+      sb.from("profile").select("*").eq("id", 1).maybeSingle(),
+      sb.from("styles").select("name,description"),
+    ]);
+    const all = ok(items);
+    const usable = all.filter((i) => !ai.isUntagged(i));
+    const ids = [...new Set((body.item_ids || []).map(String))].slice(0, 6);
+    const waiting = all.filter((i) => ids.includes(String(i.id)) && ai.isUntagged(i));
+    if (waiting.length) throw new Friendly(`Describe “${waiting[0].name || "that piece"}” first (tap it in the Closet → Describe).`, 400);
+    const starts = usable.filter((i) => ids.includes(String(i.id)));
+    const idea = String(body.idea || "").trim().slice(0, 500);
+    if (!starts.length && !idea) throw new Friendly("Pick a piece or two, or describe your idea.", 400);
+    if (usable.length < 2) throw new Friendly("Describe a few more pieces first.", 400);
+    const style = String(body.style || "").trim();
+    const opts = { idea, style, styleDesc: style ? (ok(styles).find((s) => s.name === style)?.description || "") : "",
+      occasion: String(body.occasion || ""), season: String(body.season || ""), count: Math.min(3, Math.max(1, parseInt(body.count, 10) || 2)) };
+    const res = ai.readComplete(await ask(ai.completeRequest(usable, ok(prof) || {}, starts, opts, model()), "complete_outfit"), usable, starts);
+    return {
+      looks: res.looks.map((o) => ({ ...o, items: o.items.map((i) => i.id), accessories: o.accessories.map((a) => ({ idea: a.idea, item_id: a.item?.id || null })) })),
+      shopping: res.shopping,
+    };
+  }
+
   return async function handle(req) {
     if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
     if (req.method !== "POST") return reply(405, { error: "POST only" });
@@ -175,6 +220,8 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
       if (body.action === "describe") return reply(200, await describe(sb, body));
       if (body.action === "outfits") return reply(200, await outfits(sb, body));
       if (body.action === "shop") return reply(200, await shop(sb, body));
+      if (body.action === "guide") return reply(200, await guide(sb));
+      if (body.action === "complete") return reply(200, await complete(sb, body));
       if (body.action === "tryon") return reply(200, await tryon(sb, body));
       return reply(400, { error: "Unknown action" });
     } catch (e) {

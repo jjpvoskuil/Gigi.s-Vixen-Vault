@@ -4,6 +4,7 @@ import Icon from "./Icon.jsx";
 import { Dial, Head, Sheet } from "./Shell.jsx";
 import { photoStem, preparePhoto } from "./lib/photo.js";
 import { LooksOnMe } from "./TryOn.jsx";
+import { Guide } from "./Guide.jsx";
 
 const MEASUREMENTS = [
   ["bust", "Bust", "Fullest part, tape level across your back"],
@@ -18,8 +19,8 @@ const MEASUREMENTS = [
   ["thigh", "Thigh", "Fullest part of one thigh"],
 ];
 const SIZES = [["tops", "Tops", "M or 8"], ["bottoms", "Pants / jeans", "8 or 29"], ["dresses", "Dresses", "8"], ["bra", "Bra", "34C"], ["shoes", "Shoes", "8.5"]];
-const VIEWS = ["Front", "Side", "Back", "Other"];
-const TABS = [["measure", "Measurements"], ["photos", "Body photos"], ["looks", "Looks on me"], ["styles", "My styles"]];
+const VIEWS = ["Front", "Side", "Back", "Face", "Other"];
+const TABS = [["measure", "Measurements"], ["photos", "Body photos"], ["guide", "Colors & shape"], ["styles", "My styles"], ["looks", "Looks on me"]];
 
 export default function MeScreen({ db, profile, styles, items, save }) {
   const [tab, setTab] = useState("measure");
@@ -33,7 +34,8 @@ export default function MeScreen({ db, profile, styles, items, save }) {
       {tab === "measure" && <Measurements profile={profile} save={save} />}
       {tab === "photos" && <BodyPhotos db={db} save={save} />}
       {tab === "looks" && <LooksOnMe db={db} items={items} save={save} />}
-      {tab === "styles" && <Styles profile={profile} styles={styles} save={save} />}
+      {tab === "guide" && <Guide db={db} profile={profile} styles={styles} save={save} onTab={setTab} />}
+      {tab === "styles" && <Styles profile={profile} styles={styles} save={save} onTab={setTab} />}
     </div>
   );
 }
@@ -119,7 +121,7 @@ function BodyPhotos({ db, save }) {
   useEffect(() => { refresh().catch(() => setPhotos([])); }, [refresh]);
 
   function choose(files) {
-    const list = [...(files || [])].map((file, n) => ({ key: crypto.randomUUID(), file, preview: URL.createObjectURL(file), label: VIEWS[Math.min(n, 3)], keep: true }));
+    const list = [...(files || [])].map((file, n) => ({ key: crypto.randomUUID(), file, preview: URL.createObjectURL(file), label: ["Front", "Side", "Back"][n] || "Other", keep: true }));
     setPicked(list);
   }
   const chosen = picked.filter((p) => p.keep);
@@ -148,6 +150,7 @@ function BodyPhotos({ db, save }) {
           <li>Fitted clothes (leggings and a fitted tee, or similar).</li>
           <li>Plain background, even light, phone at about waist height.</li>
           <li>At least one <b>Front</b>; <b>Side</b> and <b>Back</b> help too.</li>
+          <li>For your colors: a <b>Face</b> close-up by a window in daylight, little or no makeup, no filter.</li>
         </ul>
       </details>
       <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => { choose(e.target.files); e.target.value = ""; }} />
@@ -212,7 +215,7 @@ function BodySheet({ db, photo, onClose, onLabel, onDelete }) {
 }
 
 // ---------------------------------------------------------------- styles
-function Styles({ profile, styles, save }) {
+function Styles({ profile, styles, save, onTab }) {
   const names = styles.map((s) => s.name);
   const current = (profile.my_styles || []).filter((s) => names.includes(s));
   const [mine, setMine] = useState(current);
@@ -225,6 +228,9 @@ function Styles({ profile, styles, save }) {
   return (
     <div className="pad">
       <p className="small muted">Tap the styles you love. Outfit suggestions lean on these, and they're listed first on Unlock.</p>
+      {profile.guide?.styles?.length > 0
+        ? <p className="small"><b>Suited to you:</b> {profile.guide.styles.map((x) => x.name).join(", ")} · <button className="link" onClick={() => onTab("guide")}>why</button></p>
+        : <p className="small"><button className="link" onClick={() => onTab("guide")}>Find the styles and colors that suit you →</button></p>}
       <div className="pills">
         {styles.map((s) => <button key={s.name} className={`pill ${mine.includes(s.name) ? "on" : ""}`} onClick={() => toggle(s.name)}>{s.name}</button>)}
       </div>

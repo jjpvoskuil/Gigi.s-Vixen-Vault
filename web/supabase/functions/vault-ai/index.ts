@@ -181,6 +181,7 @@ function profileText(profile) {
   if (profile.fit_notes) out.push("What she likes to show off / play down: " + profile.fit_notes);
   if (profile.color_notes) out.push("Colors she loves / avoids: " + profile.color_notes);
   if (truthy(profile.my_styles)) out.push("Her favorite styles: " + profile.my_styles.join(", "));
+  out.push(...guideText(profile.guide));
   return out.join("\n") || "(No profile details entered yet.)";
 }
 
@@ -368,11 +369,262 @@ function shopLink(search, category, sizes) {
   return `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(q)}`;
 }
 
+// ---------------------------------------------------------------- her style guide: colors + shape (no Python reference)
+const SHAPES = ["hourglass", "pear", "inverted triangle", "rectangle", "apple"];
+
+/** A rough shape from bust / waist / hips (inches) using the usual stylist rules; "" if any is missing. */
+function bodyShape(m = {}) {
+  const bust = Number(m.bust), waist = Number(m.waist), hips = Number(m.hips);
+  if (!(bust > 0 && waist > 0 && hips > 0)) return "";
+  const big = Math.max(bust, hips);
+  if (waist >= 0.9 * big) return "apple";
+  if (hips - bust >= 0.05 * hips) return "pear";
+  if (bust - hips >= 0.05 * bust) return "inverted triangle";
+  return waist <= 0.75 * big ? "hourglass" : "rectangle";
+}
+
+/** Lines the outfit / shopping prompts get once she has a guide (nothing before, so older prompts are unchanged). */
+function guideText(guide) {
+  const g = guide || {}, c = g.colors || {}, s = g.shape || {}, out = [];
+  if (truthy(c.best)) {
+    const type = [c.season, c.undertone && `${c.undertone} undertone`].filter(Boolean).join(", ");
+    let line = `Her best colors${type ? ` (${type})` : ""}: ${c.best.map((x) => x.name).join(", ")}`;
+    if (truthy(c.neutrals)) line += `; best neutrals: ${c.neutrals.map((x) => x.name).join(", ")}`;
+    if (truthy(c.avoid)) line += `; keep away from her face: ${c.avoid.map((x) => x.name).join(", ")}`;
+    out.push(line);
+  }
+  if (s.shape) {
+    const picks = (s.best || []).flatMap((b) => b.picks || []).slice(0, 8);
+    out.push(`Body shape: ${s.shape}${picks.length ? ` — flattering: ${picks.join("; ")}` : ""}`);
+  }
+  return out;
+}
+
+const UNDERTONES = ["warm", "cool", "neutral", "olive"];
+const CONTRASTS = ["low", "medium", "high"];
+const GUIDE_AREAS = ["Necklines", "Tops", "Bottoms", "Dresses", "Jackets & layers", "Lengths & proportions"];
+const swatch = (extra = {}) => ({
+  type: "object",
+  properties: { name: { type: "string", description: "Everyday color name a shopper would use" },
+    hex: { type: "string", description: "Hex code, e.g. #7A2E3B" }, ...extra },
+  required: ["name", "hex", ...Object.keys(extra)],
+});
+
+const GUIDE_TOOL = {
+  name: "record_style_guide",
+  description: "Record her personal color analysis and body-shape style guide.",
+  input_schema: {
+    type: "object",
+    properties: {
+      colors: {
+        type: "object",
+        properties: {
+          season: { type: "string", description: "Seasonal color type, e.g. 'Soft Autumn', 'Bright Winter', 'Light Summer'" },
+          undertone: { type: "string", enum: UNDERTONES },
+          contrast: { type: "string", enum: CONTRASTS, description: "Contrast between her skin, hair and eyes" },
+          summary: { type: "string", description: "2-3 warm, plain-English sentences: her coloring and why these colors work on her" },
+          best: { type: "array", items: swatch({ wear: { type: "string", description: "Short: how to wear it, e.g. 'tops and scarves near the face'" } }),
+            description: "8-12 colors that flatter her most" },
+          neutrals: { type: "array", items: swatch(), description: "3-5 neutrals to build outfits around" },
+          metals: { type: "string", description: "Which jewelry metals suit her best, one short sentence" },
+          avoid: { type: "array", items: swatch({ why: { type: "string", description: "One short reason" } }),
+            description: "2-4 colors that wash her out or fight her coloring" },
+          tip: { type: "string", description: "How to still wear a color she loves that isn't in her palette" },
+        },
+        required: ["season", "undertone", "contrast", "summary", "best", "neutrals", "metals", "avoid", "tip"],
+      },
+      shape: {
+        type: "object",
+        properties: {
+          shape: { type: "string", description: "Her body shape, e.g. 'Hourglass', 'Pear (triangle)', 'Rectangle'" },
+          summary: { type: "string", description: "2-3 positive sentences: her proportions and the overall styling goal" },
+          best: {
+            type: "array",
+            items: { type: "object", properties: { area: { type: "string", enum: GUIDE_AREAS },
+              picks: { type: "array", items: { type: "string" }, description: "2-4 specific cuts, e.g. 'wrap tops', 'high-rise straight jeans'" } },
+            required: ["area", "picks"] },
+            description: "What flatters her, by area",
+          },
+          avoid: { type: "array", items: { type: "string" }, description: "2-4 cuts that work against her proportions, phrased kindly" },
+        },
+        required: ["shape", "summary", "best", "avoid"],
+      },
+      styles: {
+        type: "array",
+        items: { type: "object", properties: {
+          name: { type: "string", description: "Exact name from her style list when one fits, otherwise a short new style name" },
+          description: { type: "string", description: "What the style is, a few words" },
+          why: { type: "string", description: "One sentence: why it suits her shape, coloring and taste" } },
+        required: ["name", "description", "why"] },
+        description: "3-5 styles that suit both her body and her taste, best first",
+      },
+      confidence: { type: "string", description: "One sentence: how sure the color read is and what would make it better" },
+    },
+    required: ["colors", "shape", "styles", "confidence"],
+  },
+};
+
+function coloringText(c = {}) {
+  const bits = [["hair", c.hair], ["eyes", c.eyes], ["skin", c.skin], ["jewelry that looks best on her", c.metal],
+    ["the veins on her wrist look", c.veins]].filter(([, v]) => v && String(v).trim() && v !== "Not sure");
+  return bits.length ? bits.map(([k, v]) => `${k}: ${String(v).trim()}`).join("; ") : "(not given)";
+}
+
+/** photos: [{label}] in the order the images are sent. */
+function guidePrompt(profile, styles, photos) {
+  const shape = bodyShape(profile.measurements || {});
+  const imgs = photos.length ? photos.map((p, n) => `Image ${n + 1}: her ${p.label === "Face" ? "face close-up" : `${p.label.toLowerCase()} body photo`}`).join("\n")
+    : "(No photos — judge from her description only, and say so in confidence.)";
+  return `You are a warm, expert personal stylist and color analyst. Make a personal style guide for this woman: the colors that flatter her skin tone, the cuts that flatter her body shape, and the styles that suit her.
+
+ABOUT HER
+${profileText({ ...profile, guide: null })}
+Shape from her measurements (standard bust/waist/hip rules): ${shape || "not enough measurements"}
+Her coloring, in her own words: ${coloringText(profile.coloring)}
+
+PHOTOS
+${imgs}
+
+HER STYLE LIST (use these exact names when one fits)
+${styles.map((s) => `- ${s.name}${s.description ? ` — ${s.description}` : ""}`).join("\n") || "(none)"}
+
+How to do it:
+- Colors: judge her undertone, contrast and seasonal color type from her skin, hair and eyes. Phone photos shift color (warm indoor light, filters), so weigh her own description and the jewelry / vein hints heavily when the light looks off. Give real hex codes. Keep her own color likes in mind, but be honest about what flatters.
+- Shape: use her measurements first and the photos only to confirm proportions. Be specific by area. Positive tone — what to highlight and balance, never flaws, never weight loss. Respect what she says she likes to show off or play down.
+- Styles: 3-5 that suit both her shape and the styles she already likes.`;
+}
+
+function guideRequest(profile, styles, photos, model) {
+  const content = [...photos.map((p) => ({ type: "image", source: { type: "base64", media_type: p.mime || "image/jpeg", data: p.b64 } })),
+    { type: "text", text: guidePrompt(profile, styles, photos) }];
+  return toolRequest(GUIDE_TOOL, content, 4000, model);
+}
+
+const hexOk = (h) => (/^#[0-9a-f]{6}$/i.test(String(h || "").trim()) ? String(h).trim().toUpperCase() : "");
+const swatches = (list, keys = []) => (list || []).filter((x) => x && String(x.name || "").trim())
+  .map((x) => ({ name: String(x.name).trim(), hex: hexOk(x.hex), ...Object.fromEntries(keys.map((k) => [k, String(x[k] || "")])) }));
+
+/** Model answer → the guide saved on her profile (bad hex codes blanked, empty entries dropped). */
+function readGuide(data, now = new Date().toISOString()) {
+  const c = data.colors || {}, s = data.shape || {};
+  return {
+    made_at: now,
+    colors: { season: c.season || "", undertone: UNDERTONES.includes(c.undertone) ? c.undertone : "",
+      contrast: CONTRASTS.includes(c.contrast) ? c.contrast : "", summary: c.summary || "",
+      best: swatches(c.best, ["wear"]).slice(0, 12), neutrals: swatches(c.neutrals).slice(0, 5), metals: c.metals || "",
+      avoid: swatches(c.avoid, ["why"]).slice(0, 4), tip: c.tip || "" },
+    shape: { shape: s.shape || "", summary: s.summary || "",
+      best: (s.best || []).filter((b) => b && (b.picks || []).length).map((b) => ({ area: GUIDE_AREAS.includes(b.area) ? b.area : "Tops", picks: b.picks.filter(Boolean) })),
+      avoid: (s.avoid || []).filter(Boolean) },
+    styles: (data.styles || []).filter((x) => x && String(x.name || "").trim()).slice(0, 5)
+      .map((x) => ({ name: String(x.name).trim(), description: x.description || "", why: x.why || "" })),
+    confidence: data.confidence || "",
+  };
+}
+
+// ---------------------------------------------------------------- build an outfit around her pieces / idea (no Python reference)
+const COMPLETE_TOOL = {
+  name: "complete_outfit",
+  description: "Finish her outfit idea using the numbered closet items, with finishing touches.",
+  input_schema: {
+    type: "object",
+    properties: {
+      looks: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Short, fun outfit name (2-5 words)" },
+            items: { type: "array", items: { type: "integer" }, description: "Closet item numbers in the finished look, head to toe — include every piece she started with" },
+            why: { type: "string", description: "1-2 sentences: why it works for her idea and her figure/colouring" },
+            tip: { type: "string", description: "One styling tip (tuck, roll, layer)" },
+            accessories: {
+              type: "array",
+              items: { type: "object", properties: {
+                idea: { type: "string", description: "Finishing touch with color, e.g. 'gold hoops', 'tan woven belt'" },
+                item: { type: "integer", description: "Closet item number if it's one of her pieces, otherwise 0" } },
+              required: ["idea", "item"] },
+              description: "2-4 finishing touches: jewelry, belt, bag, scarf, hat, hair",
+            },
+            add_piece: { type: "string", description: "Optional: one piece she doesn't own that would elevate this look, with color. Empty if nothing needed." },
+          },
+          required: ["title", "items", "why", "tip", "accessories", "add_piece"],
+        },
+      },
+      shopping: {
+        type: "array",
+        items: { type: "object", properties: {
+          piece: { type: "string", description: "Specific piece with color" },
+          category: { type: "string", enum: CATEGORIES },
+          why: { type: "string", description: "One sentence" },
+          search: { type: "string", description: "Short shopping search phrase" } },
+        required: ["piece", "category", "why", "search"] },
+        description: "Up to 3 accessories or pieces she doesn't own that would complete these looks",
+      },
+    },
+    required: ["looks", "shopping"],
+  },
+};
+
+function completePrompt(usable, profile, starts, { idea = "", style = "", styleDesc = "", occasion = "", season = "", count = 2 } = {}) {
+  const startText = starts.length ? starts.map((it) => `${usable.indexOf(it) + 1}. ${it.name}`).join("\n") : "(none picked — build from her idea)";
+  return `You are a warm, practical personal stylist. She has started putting an outfit together and wants help finishing it and accessorizing it.
+
+ABOUT HER
+${profileText(profile)}
+
+HER IDEA
+Pieces she wants to wear:
+${startText}
+In her words: ${idea || "(nothing written)"}
+Style: ${style ? `${style}${styleDesc ? ` — ${styleDesc}` : ""}` : "whatever suits her idea"}
+Occasion / plans: ${occasion || "everyday"}
+Season / weather: ${season || "any"}
+
+HER CLOSET (number. details)
+${catalog(usable)}
+
+Make ${count} different finished look${count === 1 ? "" : "s"} built around her idea.
+Rules:
+- Every look includes ALL the pieces she wants to wear. Fill in what's missing from her own closet first: a top or bottom if needed, shoes, a layer, a bag.
+- Then finishing touches in accessories: jewelry, belt, bag, scarf, hat, hair. Use her own pieces (give the number) when she has something suitable; otherwise describe a simple one with its color and use 0.
+- Fit her idea, the occasion and the weather. Respect her colors and what she likes to show off or play down.
+- When there is more than one look, make them genuinely different (e.g. one relaxed, one dressed up).
+- In shopping, up to 3 things she doesn't own that would make these looks — and her chosen pieces — work harder. Empty if nothing is needed.`;
+}
+
+function completeRequest(usable, profile, starts, opts, model) {
+  return toolRequest(COMPLETE_TOOL, completePrompt(usable, profile, starts, opts), 3000, model);
+}
+
+/** Model answer → looks with real items; her starting pieces are always kept in. */
+function readComplete(data, usable, starts = []) {
+  const at = (n) => (Number.isInteger(n) && n >= 1 && n <= usable.length ? usable[n - 1] : null);
+  const looks = [];
+  for (const o of data.looks || []) {
+    const picked = [];
+    for (const n of o.items || []) { const it = at(n); if (it && !picked.includes(it)) picked.push(it); }
+    for (const s of starts) if (!picked.includes(s)) picked.unshift(s);
+    if (!picked.length) continue;
+    const accessories = (o.accessories || []).filter((a) => a && String(a.idea || "").trim()).slice(0, 4).map((a) => {
+      const it = at(a.item);
+      return { idea: String(a.idea).trim(), item: it && !picked.includes(it) ? it : null };
+    });
+    looks.push({ title: o.title || "Outfit", items: picked, why: o.why || "", tip: o.tip || "", accessories, add_piece: o.add_piece || "" });
+  }
+  const shopping = (data.shopping || []).filter((x) => x && String(x.piece || "").trim()).slice(0, 3).map((x) => ({
+    piece: String(x.piece).trim(), category: CATEGORIES.includes(x.category) ? x.category : "accessory", why: x.why || "",
+    search: String(x.search || x.piece).trim() }));
+  return { looks, shopping };
+}
+
 // ---------------------------------------------------------------- functions/vault-ai/handler.js
 // Supabase Edge Function "vault-ai": the only place the Anthropic key lives.
 //   POST {action:"describe", item_id}                       → AI-describes one closet photo and saves it
 //   POST {action:"outfits", style, style_desc, occasion, season, count} → outfits from her closet
 //   POST {action:"shop", style, style_desc, occasion, season, budget, count} → what to buy next
+//   POST {action:"guide"}                                     → {guide}: her colors + body shape + styles, saved on her profile
+//   POST {action:"complete", item_ids, idea, style, occasion, season, count} → {looks, shopping}: finish & accessorize her outfit
 //   POST {action:"tryon", body_photo_id, item_ids}           → {image, mime}: her photo wearing those pieces
 //        (Google Gemini image model; key GEMINI_API_KEY, model GEMINI_IMAGE_MODEL — the app saves the result)
 // Runs as the signed-in person (their sign-in token), so the database's row-level security applies: only
@@ -533,6 +785,49 @@ function makeHandler({ createClient, fetchFn, env, ai }) {
     return { outfits: res.outfits.map((o) => ({ ...o, items: o.items.map((i) => i.id) })), closet_gaps: res.closet_gaps };
   }
 
+  async function guide(sb) {
+    const [prof, styles, photos] = await Promise.all([
+      sb.from("profile").select("*").eq("id", 1).maybeSingle(),
+      sb.from("styles").select("name,description").order("sort_order").order("name"),
+      sb.from("body_photos").select("*").order("created_at"),
+    ]);
+    const profile = ok(prof) || {};
+    const ps = ok(photos);
+    // A face close-up for coloring (if she has one) and a front photo for proportions.
+    const pick = [ps.find((p) => p.label === "Face"), ps.find((p) => p.label === "Front") || ps.find((p) => p.label !== "Face")].filter(Boolean);
+    const m = profile.measurements || {};
+    if (!pick.length && !(m.bust && m.waist && m.hips)) throw new Friendly("Add your bust, waist and hip measurements or a body photo first.", 400);
+    const imgs = await Promise.all(pick.map(async (p) => ({ label: p.label, ...(await photoB64(sb, p.image_path)) })));
+    const g = ai.readGuide(await ask(ai.guideRequest(profile, ok(styles), imgs, model()), "record_style_guide"));
+    ok(await sb.from("profile").update({ guide: g, updated_at: new Date().toISOString() }).eq("id", 1));
+    return { guide: g };
+  }
+
+  async function complete(sb, body) {
+    const [items, prof, styles] = await Promise.all([
+      sb.from("items").select("*").order("created_at", { ascending: false }),
+      sb.from("profile").select("*").eq("id", 1).maybeSingle(),
+      sb.from("styles").select("name,description"),
+    ]);
+    const all = ok(items);
+    const usable = all.filter((i) => !ai.isUntagged(i));
+    const ids = [...new Set((body.item_ids || []).map(String))].slice(0, 6);
+    const waiting = all.filter((i) => ids.includes(String(i.id)) && ai.isUntagged(i));
+    if (waiting.length) throw new Friendly(`Describe “${waiting[0].name || "that piece"}” first (tap it in the Closet → Describe).`, 400);
+    const starts = usable.filter((i) => ids.includes(String(i.id)));
+    const idea = String(body.idea || "").trim().slice(0, 500);
+    if (!starts.length && !idea) throw new Friendly("Pick a piece or two, or describe your idea.", 400);
+    if (usable.length < 2) throw new Friendly("Describe a few more pieces first.", 400);
+    const style = String(body.style || "").trim();
+    const opts = { idea, style, styleDesc: style ? (ok(styles).find((s) => s.name === style)?.description || "") : "",
+      occasion: String(body.occasion || ""), season: String(body.season || ""), count: Math.min(3, Math.max(1, parseInt(body.count, 10) || 2)) };
+    const res = ai.readComplete(await ask(ai.completeRequest(usable, ok(prof) || {}, starts, opts, model()), "complete_outfit"), usable, starts);
+    return {
+      looks: res.looks.map((o) => ({ ...o, items: o.items.map((i) => i.id), accessories: o.accessories.map((a) => ({ idea: a.idea, item_id: a.item?.id || null })) })),
+      shopping: res.shopping,
+    };
+  }
+
   return async function handle(req) {
     if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
     if (req.method !== "POST") return reply(405, { error: "POST only" });
@@ -546,6 +841,8 @@ function makeHandler({ createClient, fetchFn, env, ai }) {
       if (body.action === "describe") return reply(200, await describe(sb, body));
       if (body.action === "outfits") return reply(200, await outfits(sb, body));
       if (body.action === "shop") return reply(200, await shop(sb, body));
+      if (body.action === "guide") return reply(200, await guide(sb));
+      if (body.action === "complete") return reply(200, await complete(sb, body));
       if (body.action === "tryon") return reply(200, await tryon(sb, body));
       return reply(400, { error: "Unknown action" });
     } catch (e) {
@@ -554,5 +851,5 @@ function makeHandler({ createClient, fetchFn, env, ai }) {
   };
 }
 
-const ai = { isUntagged, tagRequest, cleanTag, mergeDescribe, outfitRequest, readOutfits, toolAnswer, tryonOrder, tryonPrompt, tryonRequest, readImage, shopRequest, readShop };
+const ai = { isUntagged, tagRequest, cleanTag, mergeDescribe, outfitRequest, readOutfits, toolAnswer, tryonOrder, tryonPrompt, tryonRequest, readImage, shopRequest, readShop, guideRequest, readGuide, completeRequest, readComplete };
 Deno.serve(makeHandler({ createClient, fetchFn: fetch, env: (k) => Deno.env.get(k), ai }));

@@ -60,6 +60,10 @@ export function supabaseDb(sb, email) {
     tryOn: (bodyPhotoId, itemIds) => callAi({ action: "tryon", body_photo_id: bodyPhotoId, item_ids: itemIds }),
     /** What to buy next: {summary, suggestions:[{piece, category, color, why, pairs_with:[ids], new_looks, priority, search}], colors}. */
     suggestShopping: (opts) => callAi({ action: "shop", ...opts }),
+    /** Her colors + body shape + suited styles; the server saves it on her profile. Returns {guide}. */
+    makeGuide: () => callAi({ action: "guide" }),
+    /** Finish an outfit around her pieces / idea: {looks:[{title, items:[ids], why, tip, accessories:[{idea, item_id}], add_piece}], shopping}. */
+    completeOutfit: (opts) => callAi({ action: "complete", ...opts }),
     listWish: async () => ok(await sb.from("wishlist").select("*").order("created_at", { ascending: false })),
     addWish: async (w) => ok(await sb.from("wishlist").insert(wishRow(w)).select("*").single()),
     updateWish: async (id, fields) => ok(await sb.from("wishlist").update({ ...fields, updated_at: nowIso() }).eq("id", id)),
@@ -172,6 +176,37 @@ export function demoDb(seed) {
         suggestions: all.slice(0, count).map(([piece, category, color, priority, search], n) => ({ piece, category, color, priority, search,
           why: "Pretend reason — the real app asks the AI.", pairs_with: ids.slice(0, 2 + (n % 3)), new_looks: 6 - n })),
         colors: [{ color: "emerald", why: "Pretend: lifts all the black." }, { color: "cobalt", why: "Pretend: pops with denim." }] };
+    },
+    async makeGuide() { // pretend AI
+      await new Promise((r) => setTimeout(r, 1000));
+      const sw = (name, hex, extra = {}) => ({ name, hex, ...extra });
+      const guide = { made_at: nowIso(), confidence: "Demo guide — the real app asks the AI using her photos and measurements.",
+        colors: { season: "Soft Autumn", undertone: "warm", contrast: "medium", summary: "Pretend: warm, muted colors echo golden skin and brown eyes.",
+          best: [sw("Olive", "#6B7344", { wear: "jackets and tops" }), sw("Terracotta", "#C0623F", { wear: "near the face" }), sw("Teal", "#2F6F73", { wear: "tops" }),
+            sw("Camel", "#B8875B", { wear: "coats" }), sw("Rust", "#A4472A", { wear: "sweaters" }), sw("Moss", "#7C8450", { wear: "anywhere" }),
+            sw("Dusty rose", "#C48E8A", { wear: "blouses" }), sw("Mustard", "#C99A2E", { wear: "accents" })],
+          neutrals: [sw("Warm taupe", "#8C7A6B"), sw("Chocolate", "#4E3629"), sw("Cream", "#F1E6D2")], metals: "Gold and brass over silver.",
+          avoid: [sw("Icy pink", "#F4D7E6", { why: "washes her out" }), sw("Pure black", "#000000", { why: "harsh near the face" })],
+          tip: "Wear black below the waist and put a palette color near the face." },
+        shape: { shape: "Pear (triangle)", summary: "Pretend: defined waist, hips a little fuller than bust — balance the shoulders and show the waist.",
+          best: [{ area: "Necklines", picks: ["boat necks", "square necks"] }, { area: "Bottoms", picks: ["high-rise straight jeans", "A-line midi skirts"] },
+            { area: "Jackets & layers", picks: ["cropped jackets that hit the waist"] }], avoid: ["very skinny pants with tight tops"] },
+        styles: [{ name: "Casual Chic", description: "", why: "Pretend: easy and polished." }, { name: "Boho", description: "", why: "Pretend: flowy skirts suit her." },
+          { name: "Earthy Weekend", description: "relaxed, natural textures", why: "Pretend: a new one built from her palette." }] };
+      st.profile.guide = guide; save(); return { guide: clone(guide) };
+    },
+    async completeOutfit({ item_ids = [], count = 2 }) { // pretend AI
+      await new Promise((r) => setTimeout(r, 900));
+      const start = st.items.filter((i) => item_ids.includes(i.id));
+      const by = (c) => st.items.filter((i) => i.category === c && !start.includes(i));
+      const looks = Array.from({ length: count }, (_, n) => {
+        const extra = [by("shoes")[n], by("outerwear")[n], start.some((i) => i.category === "bottom") ? by("top")[n] : by("bottom")[n]].filter(Boolean);
+        const jewel = by("jewelry")[n] || by("bag")[n];
+        return { title: `Finished look ${n + 1}`, items: [...start, ...extra].map((i) => i.id), why: "Pretend reason — the real app asks the AI.",
+          tip: "Pretend tip: half-tuck the top.", accessories: [{ idea: jewel ? jewel.name : "gold hoops", item_id: jewel?.id || null }, { idea: "tan woven belt", item_id: null }],
+          add_piece: n === 0 ? "cognac crossbody bag" : "" };
+      });
+      return { looks, shopping: [{ piece: "Gold layered necklace", category: "jewelry", why: "Pretend: lifts plain tops.", search: "gold layered necklace" }] };
     },
     listWish: async () => clone(st.wish || []),
     async addWish(w) { const row = { id: crypto.randomUUID(), created_at: nowIso(), updated_at: nowIso(), ...wishRow(w) }; (st.wish ||= []).unshift(row); save(); return clone(row); },

@@ -25,6 +25,8 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [moreView, setMoreView] = useState("menu");     // More tab: "menu" | "punch"
   const [looks, setLooks] = useState(null);
+  const [built, setBuilt] = useState(null);           // last "build an outfit" results
+  const [unlockMode, setUnlockMode] = useState("style");
   const [ideas, setIdeas] = useState(null);           // last shopping suggestions (kept across tabs)           // last outfit results (kept across tabs)
   const [tab, setTabState] = useState(() => { const h = location.hash.slice(1); return TAB_IDS.includes(h) ? h : "closet"; });
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 2600); return () => clearTimeout(t); }, [toast]);
@@ -96,6 +98,7 @@ export default function App() {
       )}
       {tab === "unlock" && (
         <UnlockScreen db={db} items={data.items} styles={data.styles} profile={data.profile} result={looks} setResult={setLooks}
+          built={built} setBuilt={setBuilt} mode={unlockMode} setMode={setUnlockMode}
           onAdd={() => go("add")} {...itemActions}
           onWish={async (w) => { try { await db.addWish(w); setToast("Added to your shopping list"); return true; } catch (e) { setToast(e.message); return false; } }}
           onShop={() => { setMoreView("shop"); go("more"); }}
@@ -135,7 +138,7 @@ function Splash({ children }) {
       <Dial />
       <img src={`${import.meta.env.BASE_URL}icon-512.png`} alt="" />
       <span className="eyebrow" style={{ marginTop: 14 }}>Gigi's</span>
-      <h1 className="title">Velvet Vault</h1>
+      <h1 className="title">Vixen Vault</h1>
       {children}
       <p className="built">App updated {BUILT}</p>
     </div>

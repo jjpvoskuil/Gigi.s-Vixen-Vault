@@ -208,3 +208,48 @@ test("shop action: uses described pieces only, returns ids", async () => {
   assert.match(req.messages[0].content, /Style focus: Edgy — Leather/);
   assert.doesNotMatch(req.messages[0].content, /black top from Target/);
 });
+
+// ---------------------------------------------------------------- style guide + build an outfit
+test("guide: sends the face + front photos and saves the guide on her profile", async () => {
+  const db = closet(); db.body_photos = [{ id: "b1", label: "Front", image_path: "body/f.jpg" }, { id: "b2", label: "Face", image_path: "body/x.jpg" }];
+  db.profile[0].measurements = { bust: 36, waist: 28, hips: 38 };
+  const sb = fakeSupabase(db), log = [];
+  const h = makeHandler({ createClient: sb.client, fetchFn: anthropic([toolUse("record_style_guide", {
+    colors: { season: "Soft Autumn", undertone: "warm", contrast: "low", summary: "", best: [{ name: "Olive", hex: "#6B7344", wear: "" }],
+      neutrals: [], metals: "", avoid: [], tip: "" }, shape: { shape: "Hourglass", summary: "", best: [], avoid: [] }, styles: [], confidence: "" })], log), env: env(), ai });
+  const r = await h(post({ action: "guide" }));
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).guide.colors.season, "Soft Autumn");
+  assert.equal(db.profile[0].guide.shape.shape, "Hourglass");
+  const content = log[0].messages[0].content;
+  assert.deepEqual(content.filter((c) => c.type === "image").length, 2);
+  assert.match(content.find((c) => c.type === "text").text, /Image 1: her face close-up\nImage 2: her front body photo/);
+});
+
+test("guide: needs measurements or a photo", async () => {
+  const db = closet(); db.body_photos = [];
+  const h = makeHandler({ createClient: fakeSupabase(db).client, fetchFn: anthropic([]), env: env(), ai });
+  const r = await h(post({ action: "guide" }));
+  assert.equal(r.status, 400);
+});
+
+test("complete: builds around her pieces and returns ids", async () => {
+  const log = [];
+  const h = makeHandler({ createClient: fakeSupabase(closet()).client, fetchFn: anthropic([toolUse("complete_outfit", {
+    looks: [{ title: "Done", items: [3], why: "w", tip: "t", accessories: [{ idea: "hoops", item: 0 }, { idea: "mine", item: 5 }], add_piece: "" }],
+    shopping: [] })], log), env: env(), ai });
+  const r = await h(post({ action: "complete", item_ids: ["t1"], idea: "game day", count: 1 }));
+  assert.equal(r.status, 200);
+  const body = await r.json();
+  assert.deepEqual(body.looks[0].items, ["t1", "t2"]);
+  assert.deepEqual(body.looks[0].accessories, [{ idea: "hoops", item_id: null }, { idea: "mine", item_id: "t4" }]);
+  assert.match(log[0].messages[0].content, /Pieces she wants to wear:\n2\. Piece 1\nIn her words: game day/);
+});
+
+test("complete: undescribed piece or nothing picked → friendly 400", async () => {
+  const h = makeHandler({ createClient: fakeSupabase(closet()).client, fetchFn: anthropic([]), env: env(), ai });
+  let r = await h(post({ action: "complete", item_ids: ["u1"] }));
+  assert.match((await r.json()).error, /Describe/);
+  r = await h(post({ action: "complete", item_ids: [] }));
+  assert.equal(r.status, 400);
+});
