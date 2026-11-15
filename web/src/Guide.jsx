@@ -4,6 +4,7 @@
 import { useState } from "react";
 import Icon from "./Icon.jsx";
 import { Studs } from "./Shell.jsx";
+import { guideComplete } from "./lib/ai.js";
 
 const METALS = ["Gold", "Silver", "Both", "Not sure"];
 const VEINS = ["Blue / purple", "Green", "A mix", "Not sure"];
@@ -14,7 +15,8 @@ export function Guide({ db, profile, styles, save, onTab }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
-  const g = profile.guide && profile.guide.made_at ? profile.guide : null;
+  const saved = profile.guide && profile.guide.made_at ? profile.guide : null;
+  const g = saved && guideComplete({ colors: { best: saved.colors?.best || [] }, shape: { shape: saved.shape?.shape || "", best: saved.shape?.best || [] } }) ? saved : null;
   const m = profile.measurements || {};
   const haveMeas = m.bust && m.waist && m.hips;
   const set = (k) => (e) => setCol({ ...col, [k]: e.target.value });
@@ -58,6 +60,7 @@ export function Guide({ db, profile, styles, save, onTab }) {
     <div className="pad">
       <div className="waitcard"><Icon name="sparkle" size={20} /><div>
         <b>Your colors & shape</b>
+        {saved && <span className="small"><b>Your last guide came back without a palette — tap “Make my guide” to redo it.</b> </span>}
         <span className="small">The stylist works out the colors that flatter your skin tone, the cuts that suit your body shape, and the styles made for you. Outfit picks and shopping ideas use it automatically.</span>
       </div></div>
       {form}

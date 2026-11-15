@@ -60,7 +60,8 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
 
   async function ask(req, toolName) {
     for (let i = 0; i < 2; i++) {
-      const data = ai.toolAnswer(await claude(req), toolName);
+      const msg = await claude(req);
+      const data = msg.stop_reason === "max_tokens" ? null : ai.toolAnswer(msg, toolName); // cut off mid-answer → try again
       if (data) return data;
     }
     throw new Friendly("The AI answered without filling in the details — please try again.");
@@ -180,7 +181,11 @@ export function makeHandler({ createClient, fetchFn, env, ai }) {
     const m = profile.measurements || {};
     if (!pick.length && !(m.bust && m.waist && m.hips)) throw new Friendly("Add your bust, waist and hip measurements or a body photo first.", 400);
     const imgs = await Promise.all(pick.map(async (p) => ({ label: p.label, ...(await photoB64(sb, p.image_path)) })));
-    const g = ai.readGuide(await askFor(ai.guideRequest(profile, styles, imgs, model()), profile, "record_style_guide"));
+    // Never save an empty guide: try twice, then say what the AI said instead.
+    const req = ai.guideRequest(profile, styles, imgs, model());
+    let g = null;
+    for (let i = 0; i < 2 && !ai.guideComplete(g); i++) g = ai.readGuide(await askFor(req, profile, "record_style_guide"));
+    if (!ai.guideComplete(g)) throw new Friendly(`The stylist didn't come back with a palette this time — please try again.${g.confidence ? ` (It said: ${g.confidence})` : ""}`);
     ok(await sb.from("profile").upsert({ owner, guide: g, updated_at: new Date().toISOString() }, { onConflict: "owner" }));
     return { guide: g };
   }

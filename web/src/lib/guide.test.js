@@ -48,3 +48,13 @@ test("read complete: keeps her pieces, maps accessories", () => {
   assert.deepEqual(res.looks[0].accessories.map((a) => [a.idea, a.item?.id || null]), [["gold hoops", "d"], ["belt", null], ["same", null]]);
   assert.deepEqual(res.shopping, [{ piece: "Necklace", category: "accessory", why: "", search: "Necklace" }]);
 });
+
+test("read guide: nested parts written as JSON text are read back", async () => {
+  const { guideComplete } = await import("./ai.js");
+  const g = readGuide({ ...raw, colors: JSON.stringify(raw.colors), shape: { ...raw.shape, best: JSON.stringify(raw.shape.best) }, styles: "[]" });
+  assert.equal(g.colors.season, "Soft Autumn");
+  assert.equal(g.colors.best.length, 2);
+  assert.deepEqual(g.shape.best, [{ area: "Bottoms", picks: ["A-line skirts"] }]);
+  assert.equal(guideComplete(g), true);
+  assert.equal(guideComplete(readGuide({ colors: { best: [] }, shape: {}, styles: [], confidence: "" })), false);
+});

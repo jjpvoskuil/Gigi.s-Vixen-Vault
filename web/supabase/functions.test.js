@@ -300,3 +300,22 @@ test("menswear rewrite leaves women's prompts untouched", () => {
     "Colors that wash him out or suit him best. Dress him the way it fits him.");
   assert.equal(ai.shopLink("chinos", "bottom", { bottoms: "32" }, "mens"), "https://www.google.com/search?tbm=shop&q=chinos%20men%20size%2032");
 });
+
+test("guide: an empty palette is retried, and never saved", async () => {
+  const empty = toolUse("record_style_guide", { colors: { season: "", undertone: "warm", contrast: "low", summary: "", best: [], neutrals: [], metals: "", avoid: [], tip: "" },
+    shape: { shape: "", summary: "", best: [], avoid: [] }, styles: [], confidence: "Photo too dark." });
+  const full = toolUse("record_style_guide", { colors: { season: "Soft Autumn", undertone: "warm", contrast: "low", summary: "", best: [{ name: "Olive", hex: "#6B7344", wear: "" }],
+    neutrals: [], metals: "", avoid: [], tip: "" }, shape: { shape: "Pear", summary: "", best: [], avoid: [] }, styles: [], confidence: "" });
+  const cut = { stop_reason: "max_tokens", content: [{ type: "tool_use", name: "record_style_guide", input: {} }] };
+  let db = closet(); db.body_photos = [{ id: "b1", owner: ME, label: "Front", image_path: "body/f.jpg" }];
+  let h = makeHandler({ createClient: fakeSupabase(db).client, fetchFn: anthropic([cut, empty, full]), env: env(), ai });
+  let r = await h(post({ action: "guide" }));
+  assert.equal(r.status, 200);
+  assert.equal(db.profile[0].guide.colors.season, "Soft Autumn");
+  db = closet(); db.body_photos = [{ id: "b1", owner: ME, label: "Front", image_path: "body/f.jpg" }];
+  h = makeHandler({ createClient: fakeSupabase(db).client, fetchFn: anthropic([empty, empty]), env: env(), ai });
+  r = await h(post({ action: "guide" }));
+  assert.equal(r.status, 502);
+  assert.match((await r.json()).error, /didn't come back with a palette.*Photo too dark/);
+  assert.equal(db.profile[0].guide, undefined);
+});

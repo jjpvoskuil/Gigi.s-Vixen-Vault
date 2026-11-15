@@ -487,32 +487,50 @@ ${styles.map((s) => `- ${s.name}${s.description ? ` — ${s.description}` : ""}`
 How to do it:
 - Colors: judge her undertone, contrast and seasonal color type from her skin, hair and eyes. Phone photos shift color (warm indoor light, filters), so weigh her own description and the jewelry / vein hints heavily when the light looks off. Give real hex codes. Keep her own color likes in mind, but be honest about what flatters.
 - Shape: use her measurements first and the photos only to confirm proportions. Be specific by area. Positive tone — what to highlight and balance, never flaws, never weight loss. Respect what she says she likes to show off or play down.
-- Styles: 3-5 that suit both her shape and the styles she already likes.`;
+- Styles: 3-5 that suit both her shape and the styles she already likes.
+- Always fill in every list (best colors, neutrals, colors to avoid, cuts by area). If the photos are unclear, base it on her description and measurements and say so in confidence — never leave the palette empty.`;
 }
 
 export function guideRequest(profile, styles, photos, model) {
   const content = [...photos.map((p) => ({ type: "image", source: { type: "base64", media_type: p.mime || "image/jpeg", data: p.b64 } })),
     { type: "text", text: guidePrompt(profile, styles, photos) }];
-  return toolRequest(GUIDE_TOOL, content, 4000, model);
+  return toolRequest(GUIDE_TOOL, content, 8000, model);
 }
 
 const hexOk = (h) => (/^#[0-9a-f]{6}$/i.test(String(h || "").trim()) ? String(h).trim().toUpperCase() : "");
 const swatches = (list, keys = []) => (list || []).filter((x) => x && String(x.name || "").trim())
   .map((x) => ({ name: String(x.name).trim(), hex: hexOk(x.hex), ...Object.fromEntries(keys.map((k) => [k, String(x[k] || "")])) }));
 
+/** Some answers arrive with a nested object or list written out as JSON text — turn it back into data. */
+function unstring(v) {
+  if (typeof v !== "string") return v;
+  const t = v.trim();
+  if (!/^[[{]/.test(t)) return v;
+  try { return JSON.parse(t); } catch { return v; }
+}
+const obj = (v) => { v = unstring(v); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; };
+const list = (v) => { v = unstring(v); return Array.isArray(v) ? v : []; };
+
+/** True when the guide has what the screen needs: a palette and a shape. */
+export const guideComplete = (g) => !!(g && g.colors && g.colors.best.length && (g.shape.shape || g.shape.best.length));
+
 /** Model answer → the guide saved on her profile (bad hex codes blanked, empty entries dropped). */
 export function readGuide(data, now = new Date().toISOString()) {
-  const c = data.colors || {}, s = data.shape || {};
+  const c = obj(data.colors), s = obj(data.shape);
+  for (const k of ["best", "neutrals", "avoid"]) c[k] = list(c[k]);
+  s.best = list(s.best).map(obj).map((b) => ({ ...b, picks: list(b.picks) }));
+  s.avoid = list(s.avoid);
+  data = { ...data, styles: list(data.styles) };
   return {
     made_at: now,
     colors: { season: c.season || "", undertone: UNDERTONES.includes(c.undertone) ? c.undertone : "",
       contrast: CONTRASTS.includes(c.contrast) ? c.contrast : "", summary: c.summary || "",
-      best: swatches(c.best, ["wear"]).slice(0, 12), neutrals: swatches(c.neutrals).slice(0, 5), metals: c.metals || "",
-      avoid: swatches(c.avoid, ["why"]).slice(0, 4), tip: c.tip || "" },
+      best: swatches(c.best.map(obj), ["wear"]).slice(0, 12), neutrals: swatches(c.neutrals.map(obj)).slice(0, 5), metals: c.metals || "",
+      avoid: swatches(c.avoid.map(obj), ["why"]).slice(0, 4), tip: c.tip || "" },
     shape: { shape: s.shape || "", summary: s.summary || "",
       best: (s.best || []).filter((b) => b && (b.picks || []).length).map((b) => ({ area: GUIDE_AREAS.includes(b.area) ? b.area : "Tops", picks: b.picks.filter(Boolean) })),
       avoid: (s.avoid || []).filter(Boolean) },
-    styles: (data.styles || []).filter((x) => x && String(x.name || "").trim()).slice(0, 5)
+    styles: data.styles.map(obj).filter((x) => String(x.name || "").trim()).slice(0, 5)
       .map((x) => ({ name: String(x.name).trim(), description: x.description || "", why: x.why || "" })),
     confidence: data.confidence || "",
   };
