@@ -25,6 +25,10 @@ Newest first. One dated entry per working session.
   underbust/bra for men). Existing data migrates to the single non-admin user (Gigi) — run the SQL BEFORE adding Alex.
 - Setup order: schema.sql (whole file) in SQL Editor → re-paste vault-ai → merge `multi-user` to main. All three done;
   multi-user is live. (Branch `multi-user` couldn't be deleted from here — harmless, delete on GitHub any time.)
+- Gigi's punch item "Colors — just says palette": her saved guide had no colors (couldn't inspect the row — reading
+  data in John's browser was blocked). Fixed defensively: JSON-text nested parts parsed, empty/cut-off answers retried,
+  empty guides never saved (error shows the AI's reason), max_tokens 8000, prompt insists on full lists; the screen
+  offers a redo for an incomplete saved guide. Needs vault-ai re-paste; then Gigi taps Make my guide again.
 - No-Google-account plan (John agreed): first, have them create a Google account with their existing email. If that
   comes up more than once, add "Sign in with email" (6-digit code) — needs custom SMTP (e.g. Resend/Brevo) in
   Supabase first, since the built-in sender only reaches the Supabase team at 2 emails/hour.
